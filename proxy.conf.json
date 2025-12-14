@@ -1,0 +1,12 @@
+{
+  "/proxy": {
+    "target": "https://gestaoplanoempresa.dobemtecnologia.com",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/proxy": ""
+    }
+  }
+}
+

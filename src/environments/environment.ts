@@ -4,7 +4,7 @@
 
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:9000'
+  apiUrl: '/proxy' // Usa o proxy em desenvolvimento para evitar CORS
 };
 
 /*

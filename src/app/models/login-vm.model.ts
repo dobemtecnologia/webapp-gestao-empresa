@@ -3,3 +3,4 @@ export interface LoginVM {
   password: string;
   rememberMe?: boolean;
 }
+

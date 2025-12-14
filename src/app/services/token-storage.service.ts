@@ -39,3 +39,4 @@ export class TokenStorageService {
     return !!this.getToken();
   }
 }
+
