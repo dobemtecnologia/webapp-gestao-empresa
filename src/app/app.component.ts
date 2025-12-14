@@ -12,6 +12,7 @@ import { AuthService } from './services/auth.service';
 })
 export class AppComponent implements OnInit {
   public appPages = [
+    { title: 'Simulação de Plano', url: '/simulacao', icon: 'calculator' },
     { title: 'Inbox', url: '/folder/inbox', icon: 'mail' },
     { title: 'Outbox', url: '/folder/outbox', icon: 'paper-plane' },
     { title: 'Favorites', url: '/folder/favorites', icon: 'heart' },

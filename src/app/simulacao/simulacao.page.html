@@ -1,0 +1,228 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Simulação de Plano</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Simulação de Plano</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="container">
+    <form [formGroup]="simulacaoForm" (ngSubmit)="onSubmit()">
+      <!-- Nome do Plano -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Informações do Plano</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item>
+            <ion-label position="stacked">Nome do Plano *</ion-label>
+            <ion-input
+              formControlName="nomePlano"
+              placeholder="Digite o nome do plano"
+              [class.ion-invalid]="simulacaoForm.get('nomePlano')?.invalid && simulacaoForm.get('nomePlano')?.touched">
+            </ion-input>
+          </ion-item>
+          <ion-text color="danger" *ngIf="simulacaoForm.get('nomePlano')?.invalid && simulacaoForm.get('nomePlano')?.touched">
+            <p class="ion-padding-start">Nome do plano é obrigatório</p>
+          </ion-text>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Itens do Plano -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Itens do Plano</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div formArrayName="itens">
+            <div *ngFor="let item of itensFormArray.controls; let i = index" [formGroupName]="i" class="item-form">
+              <ion-card class="item-card">
+                <ion-card-content>
+                  <ion-item>
+                    <ion-label position="stacked">Tipo de Item *</ion-label>
+                    <ion-select formControlName="tipoItem" placeholder="Selecione o tipo">
+                      <ion-select-option *ngFor="let tipo of tiposItem" [value]="tipo">
+                        {{ tipo }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ion-item>
+                  
+                  <ion-item>
+                    <ion-label position="stacked">Referência ID *</ion-label>
+                    <ion-input
+                      type="number"
+                      formControlName="referenciaId"
+                      placeholder="Digite o ID de referência"
+                      [class.ion-invalid]="item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
+                    </ion-input>
+                  </ion-item>
+                  <ion-text color="danger" *ngIf="item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
+                    <p class="ion-padding-start">Referência ID é obrigatório e deve ser maior que 0</p>
+                  </ion-text>
+                  
+                  <ion-item>
+                    <ion-label position="stacked">Quantidade *</ion-label>
+                    <ion-input
+                      type="number"
+                      formControlName="quantidade"
+                      placeholder="Digite a quantidade"
+                      [class.ion-invalid]="item.get('quantidade')?.invalid && item.get('quantidade')?.touched">
+                    </ion-input>
+                  </ion-item>
+                  <ion-text color="danger" *ngIf="item.get('quantidade')?.invalid && item.get('quantidade')?.touched">
+                    <p class="ion-padding-start">Quantidade é obrigatória e deve ser maior que 0</p>
+                  </ion-text>
+                  
+                  <ion-button
+                    *ngIf="itensFormArray.length > 1"
+                    fill="clear"
+                    color="danger"
+                    (click)="removerItem(i)"
+                    class="remove-button">
+                    <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                    Remover
+                  </ion-button>
+                </ion-card-content>
+              </ion-card>
+            </div>
+          </div>
+          
+          <ion-button
+            fill="outline"
+            expand="block"
+            (click)="adicionarItem()"
+            class="add-button">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Adicionar Item
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Consumo Estimado -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Consumo Estimado</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div [formGroup]="consumoEstimadoFormGroup">
+            <ion-item>
+              <ion-label position="stacked">Tokens OpenAI *</ion-label>
+              <ion-input
+                type="number"
+                formControlName="tokensOpenAi"
+                placeholder="Digite a quantidade de tokens"
+                [class.ion-invalid]="consumoEstimadoFormGroup.get('tokensOpenAi')?.invalid && consumoEstimadoFormGroup.get('tokensOpenAi')?.touched">
+              </ion-input>
+            </ion-item>
+            <ion-text color="danger" *ngIf="consumoEstimadoFormGroup.get('tokensOpenAi')?.invalid && consumoEstimadoFormGroup.get('tokensOpenAi')?.touched">
+              <p class="ion-padding-start">Tokens OpenAI é obrigatório e deve ser maior ou igual a 0</p>
+            </ion-text>
+            
+            <ion-item>
+              <ion-label position="stacked">Mensagens WhatsApp *</ion-label>
+              <ion-input
+                type="number"
+                formControlName="mensagensWhatsapp"
+                placeholder="Digite a quantidade de mensagens"
+                [class.ion-invalid]="consumoEstimadoFormGroup.get('mensagensWhatsapp')?.invalid && consumoEstimadoFormGroup.get('mensagensWhatsapp')?.touched">
+              </ion-input>
+            </ion-item>
+            <ion-text color="danger" *ngIf="consumoEstimadoFormGroup.get('mensagensWhatsapp')?.invalid && consumoEstimadoFormGroup.get('mensagensWhatsapp')?.touched">
+              <p class="ion-padding-start">Mensagens WhatsApp é obrigatório e deve ser maior ou igual a 0</p>
+            </ion-text>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Botão de Simular -->
+      <ion-button
+        expand="block"
+        type="submit"
+        [disabled]="isLoading || simulacaoForm.invalid"
+        class="submit-button">
+        <span *ngIf="!isLoading">Simular Plano</span>
+        <span *ngIf="isLoading">
+          <ion-spinner name="crescent" class="ion-margin-end"></ion-spinner>
+          Simulando...
+        </span>
+      </ion-button>
+    </form>
+
+    <!-- Resultados da Simulação -->
+    <div *ngIf="resultadoSimulacao" class="resultados">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Resultado da Simulação</ion-card-title>
+          <ion-card-subtitle>{{ resultadoSimulacao.nomePlano }}</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <!-- Valores Totais -->
+          <div class="valores-totais">
+            <ion-item>
+              <ion-label>
+                <h2>Valor Mensal Total</h2>
+                <p class="valor-destaque">{{ formatarMoeda(resultadoSimulacao.valorMensalTotal) }}</p>
+              </ion-label>
+            </ion-item>
+            
+            <ion-item>
+              <ion-label>
+                <h2>Valor Setup Total</h2>
+                <p class="valor-destaque">{{ formatarMoeda(resultadoSimulacao.valorSetupTotal) }}</p>
+              </ion-label>
+            </ion-item>
+            
+            <ion-item>
+              <ion-label>
+                <h2>Valor Variável Estimado Total</h2>
+                <p class="valor-destaque">{{ formatarMoeda(resultadoSimulacao.valorVariavelEstimadoTotal) }}</p>
+              </ion-label>
+            </ion-item>
+          </div>
+
+          <!-- Itens -->
+          <div *ngIf="resultadoSimulacao.itens && resultadoSimulacao.itens.length > 0" class="secao-resultados">
+            <h3>Itens do Plano</h3>
+            <ion-list>
+              <ion-item *ngFor="let item of resultadoSimulacao.itens">
+                <ion-label>
+                  <h2>{{ item.nomeComponente }}</h2>
+                  <p>Tipo: {{ item.tipoItem }}</p>
+                  <p>Quantidade: {{ item.quantidade }}</p>
+                  <p>Valor Unitário Mensal: {{ formatarMoeda(item.valorUnitarioMensal) }}</p>
+                  <p>Valor Unitário Setup: {{ formatarMoeda(item.valorUnitarioSetup) }}</p>
+                  <p><strong>Subtotal Mensal: {{ formatarMoeda(item.subtotalMensal) }}</strong></p>
+                  <p><strong>Subtotal Setup: {{ formatarMoeda(item.subtotalSetup) }}</strong></p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
+          </div>
+
+          <!-- Custos Variáveis -->
+          <div *ngIf="resultadoSimulacao.custosVariaveis && resultadoSimulacao.custosVariaveis.length > 0" class="secao-resultados">
+            <h3>Custos Variáveis</h3>
+            <ion-list>
+              <ion-item *ngFor="let custo of resultadoSimulacao.custosVariaveis">
+                <ion-label>
+                  <h2>{{ custo.recurso }}</h2>
+                  <p>Provedor: {{ custo.provedor }}</p>
+                  <p>Consumo Estimado: {{ custo.consumoEstimado }} {{ custo.unidadeEscala }}</p>
+                  <p>Custo Unitário: {{ formatarMoeda(custo.custoUnitario) }}</p>
+                  <p><strong>Total Estimado: {{ formatarMoeda(custo.totalEstimado) }}</strong></p>
+                </ion-label>
+              </ion-item>
+            </ion-list>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+</ion-content>

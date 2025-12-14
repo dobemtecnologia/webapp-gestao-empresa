@@ -14,6 +14,11 @@ const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'simulacao',
+    loadChildren: () => import('./simulacao/simulacao.module').then( m => m.SimulacaoPageModule),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'login',
     loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
   }
