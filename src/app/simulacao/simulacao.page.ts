@@ -5,6 +5,7 @@ import { PlanoService } from '../services/plano.service';
 import { PlanoBlueprint } from '../models/plano-blueprint.model';
 import { ItemBlueprint } from '../models/item-blueprint.model';
 import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model';
+import { Infraestrutura } from '../models/infraestrutura.model';
 
 @Component({
   selector: 'app-simulacao',
@@ -17,6 +18,8 @@ export class SimulacaoPage implements OnInit {
   resultadoSimulacao?: PlanoSimulacaoResponse;
   isLoading = false;
   tiposItem = ['INFRAESTRUTURA', 'ASSISTENTE', 'CANAL', 'PACOTE_CREDITOS'];
+  infraestruturas: Infraestrutura[] = [];
+  carregandoInfraestruturas = false;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -27,6 +30,7 @@ export class SimulacaoPage implements OnInit {
 
   ngOnInit() {
     this.initForm();
+    this.carregarInfraestruturas();
   }
 
   initForm() {
@@ -64,6 +68,39 @@ export class SimulacaoPage implements OnInit {
     if (this.itensFormArray.length > 1) {
       this.itensFormArray.removeAt(index);
     }
+  }
+
+  carregarInfraestruturas() {
+    this.carregandoInfraestruturas = true;
+    this.planoService.getInfraestruturas('id,asc').subscribe({
+      next: (infraestruturas) => {
+        this.infraestruturas = infraestruturas;
+        this.carregandoInfraestruturas = false;
+      },
+      error: (error) => {
+        this.carregandoInfraestruturas = false;
+        console.error('Erro ao carregar infraestruturas:', error);
+        this.showToast('Erro ao carregar opções de infraestrutura.', 'danger');
+      }
+    });
+  }
+
+  onTipoItemChange(index: number) {
+    const itemControl = this.itensFormArray.at(index);
+    const tipoItem = itemControl.get('tipoItem')?.value;
+    
+    // Limpa o referenciaId quando o tipo muda
+    itemControl.get('referenciaId')?.setValue(null);
+    
+    // Se for INFRAESTRUTURA e ainda não carregou, carrega
+    if (tipoItem === 'INFRAESTRUTURA' && this.infraestruturas.length === 0) {
+      this.carregarInfraestruturas();
+    }
+  }
+
+  isTipoInfraestrutura(index: number): boolean {
+    const itemControl = this.itensFormArray.at(index);
+    return itemControl.get('tipoItem')?.value === 'INFRAESTRUTURA';
   }
 
   async onSubmit() {

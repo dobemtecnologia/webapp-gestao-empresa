@@ -48,14 +48,35 @@
                 <ion-card-content>
                   <ion-item>
                     <ion-label position="stacked">Tipo de Item *</ion-label>
-                    <ion-select formControlName="tipoItem" placeholder="Selecione o tipo">
+                    <ion-select 
+                      formControlName="tipoItem" 
+                      placeholder="Selecione o tipo"
+                      (ionChange)="onTipoItemChange(i)">
                       <ion-select-option *ngFor="let tipo of tiposItem" [value]="tipo">
                         {{ tipo }}
                       </ion-select-option>
                     </ion-select>
                   </ion-item>
                   
-                  <ion-item>
+                  <!-- Select para INFRAESTRUTURA -->
+                  <ion-item *ngIf="isTipoInfraestrutura(i)">
+                    <ion-label position="stacked">Infraestrutura *</ion-label>
+                    <ion-select
+                      formControlName="referenciaId"
+                      placeholder="Selecione a infraestrutura"
+                      [disabled]="carregandoInfraestruturas"
+                      [class.ion-invalid]="item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
+                      <ion-select-option *ngFor="let infra of infraestruturas" [value]="infra.id">
+                        {{ infra.nome }} ({{ infra.tipo }})
+                      </ion-select-option>
+                    </ion-select>
+                  </ion-item>
+                  <ion-text color="danger" *ngIf="isTipoInfraestrutura(i) && item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
+                    <p class="ion-padding-start">Infraestrutura é obrigatória</p>
+                  </ion-text>
+                  
+                  <!-- Input para outros tipos -->
+                  <ion-item *ngIf="!isTipoInfraestrutura(i)">
                     <ion-label position="stacked">Referência ID *</ion-label>
                     <ion-input
                       type="number"
@@ -64,7 +85,7 @@
                       [class.ion-invalid]="item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
                     </ion-input>
                   </ion-item>
-                  <ion-text color="danger" *ngIf="item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
+                  <ion-text color="danger" *ngIf="!isTipoInfraestrutura(i) && item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
                     <p class="ion-padding-start">Referência ID é obrigatório e deve ser maior que 0</p>
                   </ion-text>
                   
