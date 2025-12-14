@@ -1,0 +1,7 @@
+{
+  "name": "gestao-empresa",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
