@@ -117,3 +117,30 @@ ion-note {
 ion-item.selected {
   --color: var(--ion-color-primary);
 }
+
+// Estilos para o botão de logout
+ion-menu ion-list:last-child {
+  margin-top: auto;
+  border-top: 1px solid var(--ion-background-color-step-150, #d7d8da);
+  padding-top: 10px;
+}
+
+ion-menu.md ion-list:last-child {
+  margin-top: 20px;
+}
+
+ion-menu.ios ion-list:last-child {
+  margin-top: 10px;
+}
+
+ion-menu ion-item[button]:last-child {
+  --color: var(--ion-color-danger, #eb445a);
+}
+
+ion-menu.md ion-item[button]:last-child ion-icon {
+  color: var(--ion-color-danger, #eb445a);
+}
+
+ion-menu.ios ion-item[button]:last-child ion-icon {
+  color: var(--ion-color-danger, #eb445a);
+}
