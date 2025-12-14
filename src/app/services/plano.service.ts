@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment';
 import { PlanoBlueprint } from '../models/plano-blueprint.model';
 import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model';
 import { Infraestrutura } from '../models/infraestrutura.model';
+import { Assistente } from '../models/assistente.model';
 
 @Injectable({
   providedIn: 'root'
@@ -25,5 +26,10 @@ export class PlanoService {
   getInfraestruturas(sort: string = 'id,asc'): Observable<Infraestrutura[]> {
     const params = new HttpParams().set('sort', sort);
     return this.http.get<Infraestrutura[]>(`${this.baseApiUrl}/infraestruturas`, { params });
+  }
+
+  getAssistentes(sort: string = 'id,asc'): Observable<Assistente[]> {
+    const params = new HttpParams().set('sort', sort);
+    return this.http.get<Assistente[]>(`${this.baseApiUrl}/assistentes`, { params });
   }
 }

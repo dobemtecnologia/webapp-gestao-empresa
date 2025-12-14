@@ -75,8 +75,25 @@
                     <p class="ion-padding-start">Infraestrutura é obrigatória</p>
                   </ion-text>
                   
+                  <!-- Select para ASSISTENTE -->
+                  <ion-item *ngIf="isTipoAssistente(i)">
+                    <ion-label position="stacked">Assistente *</ion-label>
+                    <ion-select
+                      formControlName="referenciaId"
+                      placeholder="Selecione o assistente"
+                      [disabled]="carregandoAssistentes"
+                      [class.ion-invalid]="item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
+                      <ion-select-option *ngFor="let assistente of assistentes" [value]="assistente.id">
+                        {{ assistente.nome }}
+                      </ion-select-option>
+                    </ion-select>
+                  </ion-item>
+                  <ion-text color="danger" *ngIf="isTipoAssistente(i) && item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
+                    <p class="ion-padding-start">Assistente é obrigatório</p>
+                  </ion-text>
+                  
                   <!-- Input para outros tipos -->
-                  <ion-item *ngIf="!isTipoInfraestrutura(i)">
+                  <ion-item *ngIf="!isTipoInfraestrutura(i) && !isTipoAssistente(i)">
                     <ion-label position="stacked">Referência ID *</ion-label>
                     <ion-input
                       type="number"
@@ -85,7 +102,7 @@
                       [class.ion-invalid]="item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
                     </ion-input>
                   </ion-item>
-                  <ion-text color="danger" *ngIf="!isTipoInfraestrutura(i) && item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
+                  <ion-text color="danger" *ngIf="!isTipoInfraestrutura(i) && !isTipoAssistente(i) && item.get('referenciaId')?.invalid && item.get('referenciaId')?.touched">
                     <p class="ion-padding-start">Referência ID é obrigatório e deve ser maior que 0</p>
                   </ion-text>
                   
