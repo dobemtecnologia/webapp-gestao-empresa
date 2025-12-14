@@ -1,0 +1,35 @@
+<div class="assistants-list">
+  @if (carregandoAssistentes) {
+    <ion-spinner></ion-spinner>
+  } @else {
+    @for (sector of selectedSectors(); track sector) {
+      <div class="sector-section">
+        <h4>{{ sector }}</h4>
+        @for (assistente of getAssistantsForSector(sector); track assistente.id) {
+          <ion-item class="assistant-item">
+            <ion-label>
+              <h3>{{ assistente.nome }}</h3>
+              <p>{{ assistente.descricao || 'Assistente especializado' }}</p>
+            </ion-label>
+            <div class="quantity-controls" slot="end">
+              <ion-button 
+                fill="clear" 
+                size="small"
+                (click)="decrementQuantity(assistente.id, sector); $event.stopPropagation()"
+                [disabled]="getQuantity(assistente.id, sector) === 0">
+                <ion-icon name="remove-outline"></ion-icon>
+              </ion-button>
+              <span class="quantity-value">{{ getQuantity(assistente.id, sector) }}</span>
+              <ion-button 
+                fill="clear" 
+                size="small"
+                (click)="incrementQuantity(assistente.id, sector); $event.stopPropagation()">
+                <ion-icon name="add-outline"></ion-icon>
+              </ion-button>
+            </div>
+          </ion-item>
+        }
+      </div>
+    }
+  }
+</div>

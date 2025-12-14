@@ -1,0 +1,22 @@
+<div class="channels-grid">
+  @if (carregandoCanals) {
+    <ion-spinner></ion-spinner>
+  } @else {
+    @for (canal of canals; track canal.id) {
+      <ion-card 
+        class="channel-card" 
+        [class.enabled]="isChannelEnabled(canal.id)"
+        (click)="toggleChannel(canal.id)">
+        <ion-card-content>
+          <ion-icon [name]="getChannelIcon(canal.nome)" class="channel-icon"></ion-icon>
+          <h3>{{ canal.nome }}</h3>
+          <ion-toggle 
+            [checked]="isChannelEnabled(canal.id)"
+            (ionChange)="toggleChannel(canal.id)"
+            (click)="$event.stopPropagation()">
+          </ion-toggle>
+        </ion-card-content>
+      </ion-card>
+    }
+  }
+</div>

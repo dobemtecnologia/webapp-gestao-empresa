@@ -19,6 +19,11 @@ const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'wizard',
+    loadChildren: () => import('./wizard/wizard.module').then( m => m.WizardPageModule),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'login',
     loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
   }

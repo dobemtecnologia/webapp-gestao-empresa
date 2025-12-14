@@ -1,0 +1,30 @@
+.infrastructure-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.infrastructure-card {
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  
+  &.selected {
+    border-color: var(--ion-color-primary);
+    --background: var(--ion-color-primary-tint);
+    box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.3);
+  }
+  
+  ion-card-content {
+    p {
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+      
+      &.price {
+        font-size: 1.1rem;
+        color: var(--ion-color-primary);
+        margin-top: 1rem;
+      }
+    }
+  }
+}

@@ -1,0 +1,160 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Wizard de Simulação</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="wizard-content">
+  <div class="wizard-container">
+    <!-- Layout de duas colunas -->
+    <div class="wizard-layout">
+      <!-- Coluna Esquerda - Evah -->
+      <div class="wizard-sidebar">
+        <div class="evah-container">
+          <div class="evah-avatar">
+            <img src="assets/evah.png" alt="Evah" class="evah-image">
+          </div>
+          <div class="evah-message">
+            @if (currentStep() === 1) {
+              <p>Olá! Sou a Evah. Para começar, em quais áreas sua empresa precisa de reforço hoje?</p>
+            } @else if (currentStep() === 2) {
+              <p>Ótimo! Baseado nos setores, estes são os especialistas disponíveis. Quantos de cada você precisa?</p>
+            } @else if (currentStep() === 3) {
+              <p>Por onde esses assistentes vão falar com seu cliente?</p>
+            } @else if (currentStep() === 4) {
+              <p>Qual tipo de infraestrutura você prefere?</p>
+            } @else if (currentStep() === 5) {
+              <p>Qual sua estimativa de conversas por mês?</p>
+            } @else if (currentStep() === 6) {
+              <p>Pronto! Aqui está o desenho da sua operação.</p>
+            }
+          </div>
+        </div>
+        
+        <!-- Indicador de progresso -->
+        <div class="progress-indicator">
+          @for (step of [1, 2, 3, 4, 5, 6]; track step) {
+            <div class="step-dot" [class.active]="currentStep() >= step" [class.current]="currentStep() === step">
+              <span>{{ step }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Coluna Direita - Formulário -->
+      <div class="wizard-main">
+        <!-- Passo 1: Setores -->
+        @if (currentStep() === 1) {
+          <div class="wizard-step">
+            <h2>Selecione os Setores</h2>
+            <div class="sectors-grid">
+              @for (sector of ['Vendas', 'Suporte', 'RH', 'Financeiro', 'Marketing']; track sector) {
+                <ion-card 
+                  class="sector-card" 
+                  [class.selected]="selectedSectors().includes(sector)"
+                  (click)="wizardState.toggleSector(sector); $event.stopPropagation()">
+                  <ion-card-content>
+                    <ion-icon name="business-outline"></ion-icon>
+                    <h3>{{ sector }}</h3>
+                  </ion-card-content>
+                </ion-card>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Passo 2: Assistentes -->
+        @if (currentStep() === 2) {
+          <div class="wizard-step">
+            <h2>Selecione os Assistentes</h2>
+            <app-wizard-step-assistants></app-wizard-step-assistants>
+          </div>
+        }
+
+        <!-- Passo 3: Canais -->
+        @if (currentStep() === 3) {
+          <div class="wizard-step">
+            <h2>Selecione os Canais</h2>
+            <app-wizard-step-channels></app-wizard-step-channels>
+          </div>
+        }
+
+        <!-- Passo 4: Infraestrutura -->
+        @if (currentStep() === 4) {
+          <div class="wizard-step">
+            <h2>Escolha a Infraestrutura</h2>
+            <app-wizard-step-infrastructure></app-wizard-step-infrastructure>
+          </div>
+        }
+
+        <!-- Passo 5: Volume -->
+        @if (currentStep() === 5) {
+          <div class="wizard-step">
+            <h2>Volume de Conversas</h2>
+            <app-wizard-step-volume></app-wizard-step-volume>
+          </div>
+        }
+
+        <!-- Passo 6: Resumo -->
+        @if (currentStep() === 6) {
+          <div class="wizard-step">
+            <h2>Resumo do Plano</h2>
+            <app-wizard-step-review></app-wizard-step-review>
+          </div>
+        }
+
+        <!-- Botões de Navegação -->
+        <div class="wizard-actions">
+          @if (currentStep() > 1) {
+            <ion-button fill="outline" (click)="previousStep()">
+              <ion-icon slot="start" name="arrow-back-outline"></ion-icon>
+              Anterior
+            </ion-button>
+          }
+          
+          @if (currentStep() < 6) {
+            <ion-button 
+              [disabled]="!canProceedToNextStep()" 
+              (click)="nextStep()">
+              Próximo
+              <ion-icon slot="end" name="arrow-forward-outline"></ion-icon>
+            </ion-button>
+          } @else {
+            <ion-button 
+              color="success" 
+              [disabled]="isLoading"
+              (click)="finalizarWizard()">
+              <ion-icon slot="start" name="checkmark-outline"></ion-icon>
+              Simular Plano
+            </ion-button>
+            <ion-button 
+              fill="outline" 
+              (click)="irParaModoAvancado()">
+              <ion-icon slot="start" name="settings-outline"></ion-icon>
+              Personalizar (Modo Avançado)
+            </ion-button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Sticky com Resumo -->
+  <div class="wizard-footer">
+    <div class="footer-content">
+      <div class="footer-summary">
+        <span class="summary-label">Estimativa Mensal:</span>
+        <span class="summary-value">
+          @if (resultadoSimulacao) {
+            {{ formatarMoeda(resultadoSimulacao.valorMensalTotal) }}
+          } @else {
+            Calculando...
+          }
+        </span>
+      </div>
+    </div>
+  </div>
+</ion-content>

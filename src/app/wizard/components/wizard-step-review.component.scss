@@ -1,0 +1,24 @@
+.review-summary {
+  .summary-section {
+    margin-bottom: 2rem;
+    
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--ion-color-dark);
+    }
+    
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+  }
+  
+  ion-item {
+    --background: var(--ion-color-light);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+  }
+}

@@ -1,0 +1,74 @@
+<div class="review-summary">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Resumo do Plano</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <!-- Setores -->
+      <div class="summary-section">
+        <h3>Setores Selecionados</h3>
+        <div class="tags">
+          @for (sector of selectedSectors(); track sector) {
+            <ion-chip>{{ sector }}</ion-chip>
+          }
+        </div>
+      </div>
+
+      <!-- Assistentes -->
+      <div class="summary-section">
+        <h3>Assistentes ({{ getTotalAssistants() }})</h3>
+        <ion-list>
+          @for (assistant of assistants(); track assistant.id + assistant.sector) {
+            @if (assistant.quantity > 0) {
+              <ion-item>
+                <ion-label>
+                  <h3>{{ getAssistantName(assistant.id) }}</h3>
+                  <p>{{ assistant.sector }} - Quantidade: {{ assistant.quantity }}</p>
+                </ion-label>
+              </ion-item>
+            }
+          }
+        </ion-list>
+      </div>
+
+      <!-- Canais -->
+      <div class="summary-section">
+        <h3>Canais ({{ getTotalChannels() }})</h3>
+        <ion-list>
+          @for (channel of channels(); track channel.id) {
+            @if (channel.enabled) {
+              <ion-item>
+                <ion-label>
+                  <h3>{{ getChannelName(channel.id) }}</h3>
+                </ion-label>
+              </ion-item>
+            }
+          }
+        </ion-list>
+      </div>
+
+      <!-- Infraestrutura -->
+      @if (infrastructure()) {
+        <div class="summary-section">
+          <h3>Infraestrutura</h3>
+          <ion-item>
+            <ion-label>
+              <h3>{{ getInfrastructureName(infrastructure()!) }}</h3>
+            </ion-label>
+          </ion-item>
+        </div>
+      }
+
+      <!-- Consumo Estimado -->
+      <div class="summary-section">
+        <h3>Consumo Estimado</h3>
+        <ion-item>
+          <ion-label>
+            <p><strong>Mensagens WhatsApp:</strong> {{ formatarNumero(monthlyCredits()) }}/mês</p>
+            <p><strong>Tokens OpenAI:</strong> {{ formatarNumero(tokensOpenAi()) }}/mês</p>
+          </ion-label>
+        </ion-item>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</div>

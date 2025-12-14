@@ -1,0 +1,28 @@
+<div class="infrastructure-options">
+  @if (carregandoInfraestruturas) {
+    <ion-spinner></ion-spinner>
+  } @else {
+    @for (infra of infraestruturas; track infra.id) {
+      <ion-card 
+        class="infrastructure-card" 
+        [class.selected]="isSelected(infra.id)"
+        (click)="selectInfrastructure(infra.id)">
+        <ion-card-header>
+          <ion-card-title>{{ infra.nome }}</ion-card-title>
+          <ion-card-subtitle>{{ getInfrastructureTypeLabel(infra.tipo) }}</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          @if (infra.descricao) {
+            <p>{{ infra.descricao }}</p>
+          }
+          @if (infra.capacidadeClientes) {
+            <p><strong>Capacidade:</strong> {{ infra.capacidadeClientes }} clientes</p>
+          }
+          @if (infra.precoVendaFinal) {
+            <p class="price"><strong>Preço:</strong> {{ formatarMoeda(infra.precoVendaFinal) }}/mês</p>
+          }
+        </ion-card-content>
+      </ion-card>
+    }
+  }
+</div>

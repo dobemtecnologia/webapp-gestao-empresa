@@ -1,0 +1,45 @@
+.assistants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sector-section {
+  h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--ion-color-primary);
+  }
+}
+
+.assistant-item {
+  --background: var(--ion-color-light);
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+  
+  ion-label {
+    h3 {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    p {
+      font-size: 0.875rem;
+      color: var(--ion-color-medium);
+    }
+  }
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  .quantity-value {
+    min-width: 2rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+}

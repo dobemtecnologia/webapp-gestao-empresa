@@ -9,8 +9,7 @@ O objetivo é guiar o usuário na montagem do plano ideal, com a personagem "Eva
 - **Framework:** Angular (versão atual, Standalone Components).
 - **UI Kit:** Ionic 8.
 - **Gerenciamento de Estado:** Angular Signals (obrigatório para reatividade fluida).
-- **Estilo:** SCSS modular, Flat Design, Minimalista, Dark Mode (seguindo o padrão da imagem `image_5e6067.png`).
-
+- **Estilo:** SCSS modular, Flat Design, Minimalista
 ## 3. Estrutura de Dados (Estado Global do Wizard)
 Precisamos de um `Signal` ou `Service` que armazene o estado acumulado:
 ```typescript

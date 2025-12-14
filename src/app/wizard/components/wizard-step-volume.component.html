@@ -1,0 +1,38 @@
+<div class="volume-controls">
+  <div class="slider-section">
+    <h3>Mensagens WhatsApp por Mês</h3>
+    <ion-range
+      [value]="monthlyCredits()"
+      [min]="1000"
+      [max]="100000"
+      [step]="1000"
+      [snaps]="true"
+      [pin]="true"
+      (ionChange)="onCreditsChange($event)">
+      <ion-label slot="start">1k</ion-label>
+      <ion-label slot="end">100k+</ion-label>
+    </ion-range>
+    <div class="slider-value">
+      <span class="value-display">{{ formatarNumero(monthlyCredits()) }} mensagens</span>
+      <span class="equivalent">≈ {{ calcularHorasHumanas(monthlyCredits()) }} horas humanas</span>
+    </div>
+  </div>
+
+  <div class="slider-section">
+    <h3>Tokens OpenAI por Mês</h3>
+    <ion-range
+      [value]="tokensOpenAi()"
+      [min]="10000"
+      [max]="1000000"
+      [step]="10000"
+      [snaps]="true"
+      [pin]="true"
+      (ionChange)="onTokensChange($event)">
+      <ion-label slot="start">10k</ion-label>
+      <ion-label slot="end">1M+</ion-label>
+    </ion-range>
+    <div class="slider-value">
+      <span class="value-display">{{ formatarNumero(tokensOpenAi()) }} tokens</span>
+    </div>
+  </div>
+</div>
