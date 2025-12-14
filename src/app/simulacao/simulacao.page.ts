@@ -7,6 +7,7 @@ import { ItemBlueprint } from '../models/item-blueprint.model';
 import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model';
 import { Infraestrutura } from '../models/infraestrutura.model';
 import { Assistente } from '../models/assistente.model';
+import { Canal } from '../models/canal.model';
 
 @Component({
   selector: 'app-simulacao',
@@ -23,6 +24,8 @@ export class SimulacaoPage implements OnInit {
   carregandoInfraestruturas = false;
   assistentes: Assistente[] = [];
   carregandoAssistentes = false;
+  canals: Canal[] = [];
+  carregandoCanals = false;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -35,6 +38,7 @@ export class SimulacaoPage implements OnInit {
     this.initForm();
     this.carregarInfraestruturas();
     this.carregarAssistentes();
+    this.carregarCanals();
   }
 
   initForm() {
@@ -104,6 +108,21 @@ export class SimulacaoPage implements OnInit {
     });
   }
 
+  carregarCanals() {
+    this.carregandoCanals = true;
+    this.planoService.getCanals('id,asc').subscribe({
+      next: (canals) => {
+        this.canals = canals;
+        this.carregandoCanals = false;
+      },
+      error: (error) => {
+        this.carregandoCanals = false;
+        console.error('Erro ao carregar canais:', error);
+        this.showToast('Erro ao carregar opções de canal.', 'danger');
+      }
+    });
+  }
+
   onTipoItemChange(index: number) {
     const itemControl = this.itensFormArray.at(index);
     const tipoItem = itemControl.get('tipoItem')?.value;
@@ -120,6 +139,11 @@ export class SimulacaoPage implements OnInit {
     if (tipoItem === 'ASSISTENTE' && this.assistentes.length === 0) {
       this.carregarAssistentes();
     }
+    
+    // Se for CANAL e ainda não carregou, carrega
+    if (tipoItem === 'CANAL' && this.canals.length === 0) {
+      this.carregarCanals();
+    }
   }
 
   isTipoInfraestrutura(index: number): boolean {
@@ -130,6 +154,11 @@ export class SimulacaoPage implements OnInit {
   isTipoAssistente(index: number): boolean {
     const itemControl = this.itensFormArray.at(index);
     return itemControl.get('tipoItem')?.value === 'ASSISTENTE';
+  }
+
+  isTipoCanal(index: number): boolean {
+    const itemControl = this.itensFormArray.at(index);
+    return itemControl.get('tipoItem')?.value === 'CANAL';
   }
 
   async onSubmit() {
