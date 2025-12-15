@@ -2,85 +2,134 @@
   <ion-card>
     <ion-card-header>
       <ion-card-title>Resumo do Plano</ion-card-title>
+      @if (resumoPeriodo) {
+        <div class="highlight-price">
+          <div class="price-label">Valor do plano para o período {{ resumoPeriodo.labelPeriodo }}</div>
+          <div class="price-value">{{ formatarMoeda(resumoPeriodo.precoPeriodoComDesconto) }}</div>
+          <div class="price-sub">equivalente a {{ formatarMoeda(resumoPeriodo.precoMensalComDesconto) }} / mês</div>
+        </div>
+      }
     </ion-card-header>
     <ion-card-content>
-      <!-- Setores -->
-      <div class="summary-section">
-        <h3>Setores Selecionados</h3>
-        <div class="tags">
-          @for (sector of selectedSectors(); track sector) {
-            <ion-chip>{{ sector }}</ion-chip>
-          }
-        </div>
-      </div>
-
-      <!-- Assistentes -->
-      <div class="summary-section">
-        <h3>Assistentes ({{ getTotalAssistants() }})</h3>
-        <ion-list>
-          @for (assistant of assistants(); track assistant.id + assistant.sector) {
-            @if (assistant.quantity > 0) {
-              <ion-item>
-                <ion-label>
-                  <h3>{{ getAssistantName(assistant.id) }}</h3>
-                  <p>{{ assistant.sector }} - Quantidade: {{ assistant.quantity }}</p>
-                </ion-label>
-              </ion-item>
-            }
-          }
-        </ion-list>
-      </div>
-
-      <!-- Canais -->
-      <div class="summary-section">
-        <h3>Canais ({{ getTotalChannels() }})</h3>
-        <ion-list>
-          @for (channel of channels(); track channel.id) {
-            @if (channel.enabled) {
-              <ion-item>
-                <ion-label>
-                  <h3>{{ getChannelName(channel.id) }}</h3>
-                </ion-label>
-              </ion-item>
-            }
-          }
-        </ion-list>
-      </div>
-
-      <!-- Infraestrutura -->
-      @if (infrastructure()) {
-        <div class="summary-section">
-          <h3>Infraestrutura</h3>
-          <ion-item>
-            <ion-label>
-              <h3>{{ getInfrastructureName(infrastructure()!) }}</h3>
-            </ion-label>
-          </ion-item>
+      <!-- Tabela de valores do período -->
+      @if (resumoPeriodo) {
+        <div class="summary-table">
+          <table>
+            <tbody>
+              <tr>
+                <th>Período selecionado</th>
+                <td>{{ resumoPeriodo.labelPeriodo }} ({{ resumoPeriodo.meses }} meses)</td>
+              </tr>
+              <tr>
+                <th>Mensalidade base (sem desconto)</th>
+                <td>{{ formatarMoeda(resumoPeriodo.precoMensalBase) }}</td>
+              </tr>
+              <tr>
+                <th>Valor do período (sem desconto)</th>
+                <td>{{ formatarMoeda(resumoPeriodo.precoPeriodoBruto) }}</td>
+              </tr>
+              <tr>
+                <th>Desconto aplicado</th>
+                <td>
+                  @if (resumoPeriodo.descontoPercentual > 0) {
+                    {{ resumoPeriodo.descontoPercentual }}% ({{ formatarMoeda(resumoPeriodo.valorDesconto) }})
+                  } @else {
+                    Sem desconto
+                  }
+                </td>
+              </tr>
+              <tr>
+                <th>Valor final do período</th>
+                <td><strong>{{ formatarMoeda(resumoPeriodo.precoPeriodoComDesconto) }}</strong></td>
+              </tr>
+              <tr>
+                <th>Equivalente mensal com desconto</th>
+                <td>{{ formatarMoeda(resumoPeriodo.precoMensalComDesconto) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       }
 
-      <!-- Consumo Estimado -->
-      <div class="summary-section">
-        <h3>Consumo Estimado</h3>
-        <ion-item>
-          <ion-label>
-            <p><strong>Mensagens WhatsApp:</strong> {{ formatarNumero(monthlyCredits()) }}/mês</p>
-            <p><strong>Tokens OpenAI:</strong> {{ formatarNumero(tokensOpenAi()) }}/mês</p>
-          </ion-label>
-        </ion-item>
+      <!-- Tabela de configuração do plano -->
+      <div class="summary-table">
+        <h3>Configuração do Plano</h3>
+        <table>
+          <tbody>
+            <tr>
+              <th>Setores selecionados</th>
+              <td>
+                @for (sector of selectedSectors(); track sector) {
+                  <ion-chip>{{ sector }}</ion-chip>
+                }
+              </td>
+            </tr>
+            <tr>
+              <th>Assistentes</th>
+              <td>
+                <table class="inner-table">
+                  <thead>
+                    <tr>
+                      <th>Assistente</th>
+                      <th>Setor</th>
+                      <th>Quantidade</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (assistant of assistants(); track assistant.id + assistant.sector) {
+                      @if (assistant.quantity > 0) {
+                        <tr>
+                          <td>{{ getAssistantName(assistant.id) }}</td>
+                          <td>{{ assistant.sector }}</td>
+                          <td>{{ assistant.quantity }}</td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <th>Canais ativos</th>
+              <td>
+                <table class="inner-table">
+                  <thead>
+                    <tr>
+                      <th>Canal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (channel of channels(); track channel.id) {
+                      @if (channel.enabled) {
+                        <tr>
+                          <td>{{ getChannelName(channel.id) }}</td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+            @if (infrastructure()) {
+              <tr>
+                <th>Infraestrutura</th>
+                <td>{{ getInfrastructureName(infrastructure()!) }}</td>
+              </tr>
+            }
+            <tr>
+              <th>Consumo estimado</th>
+              <td>
+                <div>
+                  <strong>Mensagens WhatsApp:</strong> {{ formatarNumero(monthlyCredits()) }} / mês
+                </div>
+                <div>
+                  <strong>Tokens OpenAI:</strong> {{ formatarNumero(tokensOpenAi()) }} / mês
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-
-      <!-- Período -->
-      @if (selectedPeriod()) {
-        <div class="summary-section">
-          <h3>Período de Pagamento</h3>
-          <ion-item>
-            <ion-label>
-              <h3>{{ getPeriodLabel(selectedPeriod()!) }}</h3>
-            </ion-label>
-          </ion-item>
-        </div>
-      }
     </ion-card-content>
   </ion-card>
 </div>

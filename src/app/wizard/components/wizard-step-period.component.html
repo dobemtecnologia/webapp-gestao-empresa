@@ -35,17 +35,21 @@
             </div>
           </ion-card-header>
           <ion-card-content>
+            <!-- Destque principal: valor mensal com desconto -->
+            <p class="price-month-highlight">
+              {{ formatarMoeda(card.precoMensalEquivalente) }}/mês
+            </p>
+
+            <!-- Valor do período (total) fica como secundário -->
+            <p class="price-final">
+              <strong>{{ formatarMoeda(card.precoComDesconto) }}</strong> / {{ card.meses }} meses
+            </p>
+
             @if (card.descontoPercentual > 0) {
               <p class="price-original">
                 {{ formatarMoeda(card.precoBruto) }} / {{ card.meses }} meses
               </p>
             }
-            <p class="price-final">
-              {{ formatarMoeda(card.precoComDesconto) }} / {{ card.meses }} meses
-            </p>
-            <p class="price-month">
-              equivalente a {{ formatarMoeda(card.precoMensalEquivalente) }}/mês
-            </p>
 
             <p class="period-description">
               {{ card.economiaLabel }}

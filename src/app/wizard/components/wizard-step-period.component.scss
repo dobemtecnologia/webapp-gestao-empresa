@@ -120,9 +120,16 @@
   margin-bottom: 0.25rem;
 }
 
+.price-month-highlight {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--ion-color-primary);
+  margin: 0 0 0.25rem 0;
+}
+
 .price-final {
-  font-size: 1.4rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   color: var(--ion-color-dark);
   margin: 0;
 }

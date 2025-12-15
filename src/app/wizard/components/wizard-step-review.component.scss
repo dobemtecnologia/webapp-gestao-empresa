@@ -1,24 +1,78 @@
 .review-summary {
-  .summary-section {
-    margin-bottom: 2rem;
-    
-    h3 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: var(--ion-color-dark);
+  ion-card {
+    width: 100%;
+  }
+
+  .highlight-price {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--ion-color-primary-tint);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .price-label {
+      font-size: 0.9rem;
+      color: var(--ion-color-medium);
     }
-    
-    .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
+
+    .price-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--ion-color-primary);
+    }
+
+    .price-sub {
+      font-size: 0.85rem;
+      color: var(--ion-color-medium);
     }
   }
-  
-  ion-item {
-    --background: var(--ion-color-light);
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
+
+  .summary-table {
+    margin-top: 1.5rem;
+
+    h3 {
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--ion-color-dark);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+
+      th,
+      td {
+        padding: 0.6rem 0.75rem;
+        border-bottom: 1px solid var(--ion-color-light);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        width: 30%;
+        font-weight: 600;
+        color: var(--ion-color-medium);
+        background: #fafafa;
+      }
+    }
+
+    .inner-table {
+      width: 100%;
+
+      th {
+        background: transparent;
+        color: var(--ion-color-medium);
+        font-weight: 500;
+      }
+    }
+
+    ion-chip {
+      margin-right: 0.25rem;
+      margin-bottom: 0.25rem;
+    }
   }
 }
