@@ -1,22 +1,28 @@
-<div class="channels-grid">
+<div class="assistant-channels">
   @if (carregandoCanals) {
     <ion-spinner></ion-spinner>
   } @else {
-    @for (canal of canals; track canal.id) {
-      <ion-card 
-        class="channel-card" 
-        [class.enabled]="isChannelEnabled(canal.id)"
-        (click)="toggleChannel(canal.id)">
-        <ion-card-content>
-          <ion-icon [name]="getChannelIcon(canal.nome)" class="channel-icon"></ion-icon>
-          <h3>{{ canal.nome }}</h3>
-          <ion-toggle 
-            [checked]="isChannelEnabled(canal.id)"
-            (ionChange)="toggleChannel(canal.id)"
-            (click)="$event.stopPropagation()">
-          </ion-toggle>
-        </ion-card-content>
-      </ion-card>
+    @for (assistant of assistants(); track assistant.id + assistant.sector) {
+      @if (assistant.quantity > 0) {
+        <div class="assistant-row">
+          <div class="assistant-info">
+            <h3>{{ assistant.nome }}</h3>
+            <p>{{ assistant.sector }} • {{ assistant.quantity }} assistente(s)</p>
+          </div>
+          <div class="assistant-channels-grid">
+            @for (canal of canals; track canal.id) {
+              <div class="channel-toggle" (click)="toggleAssistantChannel(assistant.id, canal.id)">
+                <ion-icon [name]="getChannelIcon(canal.nome)" class="channel-icon"></ion-icon>
+                <span class="channel-name">{{ canal.nome }}</span>
+                <ion-toggle
+                  [checked]="isChannelEnabledForAssistant(assistant.id, canal.id)"
+                  (ionChange)="toggleAssistantChannel(assistant.id, canal.id); $event.stopPropagation()">
+                </ion-toggle>
+              </div>
+            }
+          </div>
+        </div>
+      }
     }
   }
 </div>

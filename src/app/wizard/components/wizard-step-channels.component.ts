@@ -16,6 +16,8 @@ export class WizardStepChannelsComponent implements OnInit {
   canals: Canal[] = [];
   carregandoCanals = false;
   channels = this.wizardState.channels;
+  assistants = this.wizardState.assistants;
+  assistantChannels = this.wizardState.assistantChannels;
 
   ngOnInit() {
     this.carregarCanals();
@@ -26,7 +28,7 @@ export class WizardStepChannelsComponent implements OnInit {
     this.planoService.getCanals('id,asc').subscribe({
       next: (canals) => {
         this.canals = canals;
-        // Inicializa canais no estado se ainda não existirem
+        // Mantém a lista de canais disponíveis no estado (sem mais flag global de enabled)
         const currentChannels = this.channels();
         const newChannels = canals.map(canal => {
           const existing = currentChannels.find(ch => ch.id === canal.id);
@@ -41,12 +43,14 @@ export class WizardStepChannelsComponent implements OnInit {
     });
   }
 
-  toggleChannel(channelId: number) {
-    this.wizardState.toggleChannel(channelId);
+  toggleAssistantChannel(assistantId: number, channelId: number) {
+    this.wizardState.toggleAssistantChannel(assistantId, channelId);
   }
 
-  isChannelEnabled(channelId: number): boolean {
-    return this.channels().find(c => c.id === channelId)?.enabled || false;
+  isChannelEnabledForAssistant(assistantId: number, channelId: number): boolean {
+    return this.assistantChannels().some(
+      ac => ac.assistantId === assistantId && ac.channelId === channelId && ac.enabled
+    );
   }
 
   getChannelIcon(nome: string): string {

@@ -68,7 +68,13 @@ export class WizardPage implements OnInit {
       case 2:
         return this.assistants().some(a => a.quantity > 0);
       case 3:
-        return this.channels().some(c => c.enabled);
+        // Cada assistente com quantidade > 0 precisa ter pelo menos um canal associado
+        const activeAssistants = this.assistants().filter(a => a.quantity > 0);
+        if (activeAssistants.length === 0) return false;
+        const assistantChannels = this.wizardState.assistantChannels();
+        return activeAssistants.every(a =>
+          assistantChannels.some(ac => ac.assistantId === a.id && ac.enabled)
+        );
       case 4:
         return this.infrastructure() !== null;
       case 5:
@@ -125,6 +131,18 @@ export class WizardPage implements OnInit {
   private converterParaPlanoBlueprint(): PlanoBlueprint {
     const state = this.wizardState.getState();
     
+    // Calcula o uso de canais com base no mapeamento assistente x canal
+    const channelUsage: Record<number, number> = {};
+    state.assistants
+      .filter(a => a.quantity > 0)
+      .forEach(assistant => {
+        state.assistantChannels
+          .filter(ac => ac.assistantId === assistant.id && ac.enabled)
+          .forEach(ac => {
+            channelUsage[ac.channelId] = (channelUsage[ac.channelId] || 0) + assistant.quantity;
+          });
+      });
+
     const itens = [
       // Infraestrutura
       ...(state.infrastructure ? [{
@@ -142,14 +160,12 @@ export class WizardPage implements OnInit {
           quantidade: a.quantity
         })),
       
-      // Canais
-      ...state.channels
-        .filter(c => c.enabled)
-        .map(c => ({
-          tipoItem: 'CANAL' as const,
-          referenciaId: c.id,
-          quantidade: 1
-        }))
+      // Canais (quantidade proporcional à quantidade de assistentes que usam cada canal)
+      ...Object.entries(channelUsage).map(([channelId, quantidade]) => ({
+        tipoItem: 'CANAL' as const,
+        referenciaId: Number(channelId),
+        quantidade
+      }))
     ];
 
     return {

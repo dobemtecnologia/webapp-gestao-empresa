@@ -11,6 +11,7 @@ export class WizardStateService {
     selectedSectors: [],
     assistants: [],
     channels: [],
+    assistantChannels: [],
     infrastructure: null,
     monthlyCredits: 1000,
     tokensOpenAi: 1000000,
@@ -23,6 +24,8 @@ export class WizardStateService {
   readonly selectedSectors = computed(() => this.state().selectedSectors);
   readonly assistants = computed(() => this.state().assistants);
   readonly channels = computed(() => this.state().channels);
+   // Mapeamento Assistente x Canal
+  readonly assistantChannels = computed(() => this.state().assistantChannels);
   readonly infrastructure = computed(() => this.state().infrastructure);
   readonly monthlyCredits = computed(() => this.state().monthlyCredits);
   readonly tokensOpenAi = computed(() => this.state().tokensOpenAi);
@@ -68,6 +71,35 @@ export class WizardStateService {
     this.state.update(s => ({ ...s, channels }));
   }
 
+  setAssistantChannels(assistantChannels: { assistantId: number; channelId: number; enabled: boolean }[]) {
+    this.state.update(s => ({ ...s, assistantChannels }));
+  }
+
+  toggleAssistantChannel(assistantId: number, channelId: number) {
+    this.state.update(s => {
+      const existing = s.assistantChannels.find(
+        ac => ac.assistantId === assistantId && ac.channelId === channelId
+      );
+      if (existing) {
+        return {
+          ...s,
+          assistantChannels: s.assistantChannels.map(ac =>
+            ac.assistantId === assistantId && ac.channelId === channelId
+              ? { ...ac, enabled: !ac.enabled }
+              : ac
+          )
+        };
+      }
+      return {
+        ...s,
+        assistantChannels: [
+          ...s.assistantChannels,
+          { assistantId, channelId, enabled: true }
+        ]
+      };
+    });
+  }
+
   toggleChannel(channelId: number) {
     this.state.update(s => ({
       ...s,
@@ -103,6 +135,7 @@ export class WizardStateService {
       selectedSectors: [],
       assistants: [],
       channels: [],
+      assistantChannels: [],
       infrastructure: null,
       monthlyCredits: 1000,
       tokensOpenAi: 1000000,
