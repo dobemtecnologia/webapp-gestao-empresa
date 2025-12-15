@@ -37,10 +37,22 @@ export class WizardPage implements OnInit {
     this.wizardState.reset();
   }
 
-  nextStep() {
-    if (this.canProceedToNextStep()) {
-      this.wizardState.nextStep();
+  async nextStep() {
+    if (!this.canProceedToNextStep() || this.isLoading) {
+      return;
     }
+
+    const step = this.currentStep();
+
+    // Ao sair do passo 5 para o 6 (período), simulamos o plano automaticamente
+    if (step === 5) {
+      const sucesso = await this.simularPlano();
+      if (!sucesso) {
+        return;
+      }
+    }
+
+    this.wizardState.nextStep();
   }
 
   previousStep() {
@@ -62,17 +74,15 @@ export class WizardPage implements OnInit {
       case 5:
         return this.monthlyCredits() > 0;
       case 6:
-        return true;
-      case 7:
         return this.selectedPeriod() !== null;
+      case 7:
+        return true;
       default:
         return false;
     }
   }
 
-  async finalizarWizard() {
-    if (this.isLoading) return;
-
+  private async simularPlano(): Promise<boolean> {
     this.isLoading = true;
     const loading = await this.loadingController.create({
       message: 'Simulando plano...',
@@ -82,24 +92,27 @@ export class WizardPage implements OnInit {
 
     const planoBlueprint = this.converterParaPlanoBlueprint();
 
-    this.planoService.simularGeracao(planoBlueprint).subscribe({
-      next: (response) => {
-        loading.dismiss();
-        this.isLoading = false;
-        this.resultadoSimulacao = response;
-        // Guarda o valor mensal base no estado do wizard
-        this.wizardState.setBaseMonthlyValue(response.valorMensalTotal);
-        this.showToast('Simulação realizada com sucesso!', 'success');
-      },
-      error: (error) => {
-        loading.dismiss();
-        this.isLoading = false;
-        let errorMessage = 'Erro ao simular plano. Tente novamente.';
-        if (error.error?.message) {
-          errorMessage = error.error.message;
+    return new Promise<boolean>((resolve) => {
+      this.planoService.simularGeracao(planoBlueprint).subscribe({
+        next: (response) => {
+          loading.dismiss();
+          this.isLoading = false;
+          this.resultadoSimulacao = response;
+          // Guarda o valor mensal base no estado do wizard
+          this.wizardState.setBaseMonthlyValue(response.valorMensalTotal);
+          resolve(true);
+        },
+        error: (error) => {
+          loading.dismiss();
+          this.isLoading = false;
+          let errorMessage = 'Erro ao simular plano. Tente novamente.';
+          if (error.error?.message) {
+            errorMessage = error.error.message;
+          }
+          this.showToast(errorMessage, 'danger');
+          resolve(false);
         }
-        this.showToast(errorMessage, 'danger');
-      }
+      });
     });
   }
 

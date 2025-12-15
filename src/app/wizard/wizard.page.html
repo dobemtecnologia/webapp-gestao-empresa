@@ -29,9 +29,9 @@
             } @else if (currentStep() === 5) {
               <p>Qual sua estimativa de conversas por mês?</p>
             }             @else if (currentStep() === 6) {
-              <p>Pronto! Aqui está o desenho da sua operação.</p>
-            } @else if (currentStep() === 7) {
               <p>Escolha o período de pagamento que melhor se adequa ao seu negócio.</p>
+            } @else if (currentStep() === 7) {
+              <p>Pronto! Aqui está o desenho da sua operação.</p>
             }
           </div>
         </div>
@@ -100,19 +100,19 @@
           </div>
         }
 
-        <!-- Passo 6: Resumo -->
+        <!-- Passo 6: Período -->
         @if (currentStep() === 6) {
-          <div class="wizard-step">
-            <h2>Resumo do Plano</h2>
-            <app-wizard-step-review></app-wizard-step-review>
-          </div>
-        }
-
-        <!-- Passo 7: Período -->
-        @if (currentStep() === 7) {
           <div class="wizard-step">
             <h2>Selecione o Período de Pagamento</h2>
             <app-wizard-step-period></app-wizard-step-period>
+          </div>
+        }
+
+        <!-- Passo 7: Resumo -->
+        @if (currentStep() === 7) {
+          <div class="wizard-step">
+            <h2>Resumo do Plano</h2>
+            <app-wizard-step-review></app-wizard-step-review>
           </div>
         }
 
@@ -140,13 +140,6 @@
               <ion-icon slot="end" name="arrow-forward-outline"></ion-icon>
             </ion-button>
           } @else {
-            <ion-button 
-              color="success" 
-              [disabled]="isLoading"
-              (click)="finalizarWizard()">
-              <ion-icon slot="start" name="checkmark-outline"></ion-icon>
-              Simular Plano
-            </ion-button>
             <ion-button 
               fill="outline" 
               (click)="irParaModoAvancado()">
