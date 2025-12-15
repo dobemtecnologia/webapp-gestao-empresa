@@ -1,0 +1,115 @@
+.period-selection {
+  width: 100%;
+}
+
+.period-intro {
+  color: var(--ion-color-medium);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.periods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.period-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid var(--ion-color-light);
+  position: relative;
+  overflow: visible;
+  
+  &.selected {
+    border-color: var(--ion-color-primary);
+    box-shadow: 0 4px 12px rgba(var(--ion-color-primary-rgb), 0.3);
+    transform: translateY(-2px);
+  }
+  
+  &.recommended {
+    border-color: var(--ion-color-success);
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      height: 4px;
+      background: var(--ion-color-success);
+      border-radius: 16px 16px 0 0;
+    }
+    
+    &.selected {
+      border-color: var(--ion-color-primary);
+      
+      &::before {
+        background: var(--ion-color-primary);
+      }
+    }
+  }
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.period-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  
+  ion-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    
+    .recommended-badge {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--ion-color-medium);
+      margin-left: 0.5rem;
+      font-style: normal;
+    }
+  }
+  
+  .discount-badge {
+    align-self: flex-start;
+    background: var(--ion-color-danger);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+}
+
+.period-description {
+  color: var(--ion-color-medium);
+  font-size: 0.95rem;
+  margin: 0.5rem 0;
+}
+
+.discount-info {
+  color: var(--ion-color-success);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+// Responsividade
+@media (max-width: 768px) {
+  .periods-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -12,6 +12,7 @@ import { WizardStepChannelsComponent } from './components/wizard-step-channels.c
 import { WizardStepInfrastructureComponent } from './components/wizard-step-infrastructure.component';
 import { WizardStepVolumeComponent } from './components/wizard-step-volume.component';
 import { WizardStepReviewComponent } from './components/wizard-step-review.component';
+import { WizardStepPeriodComponent } from './components/wizard-step-period.component';
 
 @NgModule({
   imports: [
@@ -27,7 +28,8 @@ import { WizardStepReviewComponent } from './components/wizard-step-review.compo
     WizardStepChannelsComponent,
     WizardStepInfrastructureComponent,
     WizardStepVolumeComponent,
-    WizardStepReviewComponent
+    WizardStepReviewComponent,
+    WizardStepPeriodComponent
   ]
 })
 export class WizardPageModule {}

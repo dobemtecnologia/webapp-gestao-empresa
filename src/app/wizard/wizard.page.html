@@ -28,15 +28,17 @@
               <p>Qual tipo de infraestrutura você prefere?</p>
             } @else if (currentStep() === 5) {
               <p>Qual sua estimativa de conversas por mês?</p>
-            } @else if (currentStep() === 6) {
+            }             @else if (currentStep() === 6) {
               <p>Pronto! Aqui está o desenho da sua operação.</p>
+            } @else if (currentStep() === 7) {
+              <p>Escolha o período de pagamento que melhor se adequa ao seu negócio.</p>
             }
           </div>
         </div>
         
         <!-- Indicador de progresso -->
         <div class="progress-indicator">
-          @for (step of [1, 2, 3, 4, 5, 6]; track step) {
+          @for (step of [1, 2, 3, 4, 5, 6, 7]; track step) {
             <div class="step-dot" [class.active]="currentStep() >= step" [class.current]="currentStep() === step">
               <span>{{ step }}</span>
             </div>
@@ -106,6 +108,14 @@
           </div>
         }
 
+        <!-- Passo 7: Período -->
+        @if (currentStep() === 7) {
+          <div class="wizard-step">
+            <h2>Selecione o Período de Pagamento</h2>
+            <app-wizard-step-period></app-wizard-step-period>
+          </div>
+        }
+
         <!-- Botões de Navegação -->
         <div class="wizard-actions">
           @if (currentStep() > 1) {
@@ -115,7 +125,7 @@
             </ion-button>
           }
           
-          @if (currentStep() < 6) {
+          @if (currentStep() < 7) {
             <ion-button 
               [disabled]="!canProceedToNextStep()" 
               (click)="nextStep()">

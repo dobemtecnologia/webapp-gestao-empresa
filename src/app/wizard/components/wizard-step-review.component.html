@@ -69,6 +69,18 @@
           </ion-label>
         </ion-item>
       </div>
+
+      <!-- Período -->
+      @if (selectedPeriod()) {
+        <div class="summary-section">
+          <h3>Período de Pagamento</h3>
+          <ion-item>
+            <ion-label>
+              <h3>{{ getPeriodLabel(selectedPeriod()!) }}</h3>
+            </ion-label>
+          </ion-item>
+        </div>
+      }
     </ion-card-content>
   </ion-card>
 </div>

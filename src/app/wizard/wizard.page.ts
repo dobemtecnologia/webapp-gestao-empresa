@@ -30,6 +30,7 @@ export class WizardPage implements OnInit {
   infrastructure = this.wizardState.infrastructure;
   monthlyCredits = this.wizardState.monthlyCredits;
   tokensOpenAi = this.wizardState.tokensOpenAi;
+  selectedPeriod = this.wizardState.selectedPeriod;
 
   ngOnInit() {
     // Reset do wizard ao entrar na página
@@ -62,6 +63,8 @@ export class WizardPage implements OnInit {
         return this.monthlyCredits() > 0;
       case 6:
         return true;
+      case 7:
+        return this.selectedPeriod() !== null;
       default:
         return false;
     }

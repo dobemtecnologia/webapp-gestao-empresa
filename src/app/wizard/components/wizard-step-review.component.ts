@@ -18,6 +18,7 @@ export class WizardStepReviewComponent {
   infrastructure = this.wizardState.infrastructure;
   monthlyCredits = this.wizardState.monthlyCredits;
   tokensOpenAi = this.wizardState.tokensOpenAi;
+  selectedPeriod = this.wizardState.selectedPeriod;
 
   infraestruturas: any[] = [];
   assistentes: any[] = [];
@@ -69,5 +70,15 @@ export class WizardStepReviewComponent {
       return `${(valor / 1000).toFixed(0)}k`;
     }
     return valor.toString();
+  }
+
+  getPeriodLabel(period: string): string {
+    const labels: { [key: string]: string } = {
+      'MENSAL': 'Mensal',
+      'TRIMESTRAL': 'Trimestral',
+      'SEMESTRAL': 'Semestral',
+      'ANUAL': 'Anual'
+    };
+    return labels[period] || period;
   }
 }

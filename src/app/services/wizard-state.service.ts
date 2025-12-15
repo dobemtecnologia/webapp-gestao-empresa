@@ -13,7 +13,8 @@ export class WizardStateService {
     channels: [],
     infrastructure: null,
     monthlyCredits: 1000,
-    tokensOpenAi: 50000
+    tokensOpenAi: 50000,
+    selectedPeriod: null
   });
 
   // Getters computados
@@ -24,6 +25,7 @@ export class WizardStateService {
   readonly infrastructure = computed(() => this.state().infrastructure);
   readonly monthlyCredits = computed(() => this.state().monthlyCredits);
   readonly tokensOpenAi = computed(() => this.state().tokensOpenAi);
+  readonly selectedPeriod = computed(() => this.state().selectedPeriod);
 
   // Ações para atualizar o estado
   setCurrentStep(step: number) {
@@ -31,7 +33,7 @@ export class WizardStateService {
   }
 
   nextStep() {
-    this.state.update(s => ({ ...s, currentStep: Math.min(6, s.currentStep + 1) }));
+    this.state.update(s => ({ ...s, currentStep: Math.min(7, s.currentStep + 1) }));
   }
 
   previousStep() {
@@ -85,6 +87,10 @@ export class WizardStateService {
     this.state.update(s => ({ ...s, tokensOpenAi: tokens }));
   }
 
+  setSelectedPeriod(period: 'MENSAL' | 'TRIMESTRAL' | 'SEMESTRAL' | 'ANUAL' | null) {
+    this.state.update(s => ({ ...s, selectedPeriod: period }));
+  }
+
   reset() {
     this.state.set({
       currentStep: 1,
@@ -93,7 +99,8 @@ export class WizardStateService {
       channels: [],
       infrastructure: null,
       monthlyCredits: 1000,
-      tokensOpenAi: 50000
+      tokensOpenAi: 50000,
+      selectedPeriod: null
     });
   }
 
