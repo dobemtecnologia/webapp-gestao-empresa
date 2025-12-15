@@ -7,6 +7,7 @@ import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model
 import { Infraestrutura } from '../models/infraestrutura.model';
 import { Assistente } from '../models/assistente.model';
 import { Canal } from '../models/canal.model';
+import { PeriodoContratacao } from '../models/periodo-contratacao.model';
 
 @Injectable({
   providedIn: 'root'
@@ -37,5 +38,10 @@ export class PlanoService {
   getCanals(sort: string = 'id,asc'): Observable<Canal[]> {
     const params = new HttpParams().set('sort', sort);
     return this.http.get<Canal[]>(`${this.baseApiUrl}/canals`, { params });
+  }
+
+  getPeriodosContratacao(sort: string = 'id,asc'): Observable<PeriodoContratacao[]> {
+    const params = new HttpParams().set('sort', sort);
+    return this.http.get<PeriodoContratacao[]>(`${this.baseApiUrl}/periodo-contratacaos`, { params });
   }
 }

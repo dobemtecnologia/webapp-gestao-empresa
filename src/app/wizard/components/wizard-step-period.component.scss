@@ -2,6 +2,20 @@
   width: 100%;
 }
 
+.loading-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 0;
+}
+
+.no-data {
+  color: var(--ion-color-medium);
+  font-size: 0.95rem;
+  text-align: center;
+  margin-top: 1rem;
+}
+
 .period-intro {
   color: var(--ion-color-medium);
   font-size: 0.95rem;
@@ -97,6 +111,26 @@
   color: var(--ion-color-medium);
   font-size: 0.95rem;
   margin: 0.5rem 0;
+}
+
+.price-original {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+  text-decoration: line-through;
+  margin-bottom: 0.25rem;
+}
+
+.price-final {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--ion-color-dark);
+  margin: 0;
+}
+
+.price-month {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+  margin-top: 0.25rem;
 }
 
 .discount-info {

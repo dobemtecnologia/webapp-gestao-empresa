@@ -87,6 +87,8 @@ export class WizardPage implements OnInit {
         loading.dismiss();
         this.isLoading = false;
         this.resultadoSimulacao = response;
+        // Guarda o valor mensal base no estado do wizard
+        this.wizardState.setBaseMonthlyValue(response.valorMensalTotal);
         this.showToast('Simulação realizada com sucesso!', 'success');
       },
       error: (error) => {

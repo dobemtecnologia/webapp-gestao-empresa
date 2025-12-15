@@ -7,6 +7,7 @@ export interface WizardState {
   monthlyCredits: number; // Valor do slider (mensagens estimadas)
   tokensOpenAi: number; // Tokens OpenAI estimados
   selectedPeriod: 'MENSAL' | 'TRIMESTRAL' | 'SEMESTRAL' | 'ANUAL' | null; // Período selecionado
+  baseMonthlyValue?: number | null; // Valor mensal base retornado pela simulação
 }
 
 export interface PeriodOption {

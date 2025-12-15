@@ -1,35 +1,58 @@
 <div class="period-selection">
   <p class="period-intro">
-    Listar o período de pagamento ajuda os clientes em potencial a determinar rapidamente 
-    qual opção se encaixa melhor no orçamento e nas necessidades deles.
+    Escolha o período de contratação que melhor se encaixa no orçamento da sua empresa.
+    Veja quanto você economiza em cada opção.
   </p>
-  <div class="periods-grid">
-    @for (period of periods; track period.id) {
-      <ion-card 
-        class="period-card" 
-        [class.selected]="isSelected(period.id)"
-        [class.recommended]="period.recomendado"
-        (click)="selectPeriod(period.id)">
-        <ion-card-header>
-          <div class="period-header">
-            <ion-card-title>
-              {{ period.nome }}
-              @if (period.recomendado) {
-                <span class="recommended-badge">(Recomendado)</span>
+
+  @if (carregando) {
+    <div class="loading-wrapper">
+      <ion-spinner></ion-spinner>
+    </div>
+  } @else if (periodCards.length === 0) {
+    <p class="no-data">
+      Ainda não foi possível calcular os valores por período. 
+      Certifique-se de ter simulado o plano antes de chegar aqui.
+    </p>
+  } @else {
+    <div class="periods-grid">
+      @for (card of periodCards; track card.id) {
+        <ion-card 
+          class="period-card" 
+          [class.selected]="isSelected(card.codigo)"
+          [class.recommended]="card.recomendado"
+          (click)="selectPeriod(card.codigo)">
+          <ion-card-header>
+            <div class="period-header">
+              <ion-card-title>
+                {{ card.nome }}
+                @if (card.recomendado) {
+                  <span class="recommended-badge">(Recomendado)</span>
+                }
+              </ion-card-title>
+              @if (card.descontoPercentual > 0) {
+                <div class="discount-badge">{{ formatarDesconto(card.descontoPercentual) }}</div>
               }
-            </ion-card-title>
-            @if (period.desconto > 0) {
-              <div class="discount-badge">{{ formatarDesconto(period.desconto) }}</div>
+            </div>
+          </ion-card-header>
+          <ion-card-content>
+            @if (card.descontoPercentual > 0) {
+              <p class="price-original">
+                {{ formatarMoeda(card.precoBruto) }} / {{ card.meses }} meses
+              </p>
             }
-          </div>
-        </ion-card-header>
-        <ion-card-content>
-          <p class="period-description">{{ period.descricao }}</p>
-          @if (period.desconto > 0) {
-            <p class="discount-info">Economize {{ period.desconto }}% com este período</p>
-          }
-        </ion-card-content>
-      </ion-card>
-    }
-  </div>
+            <p class="price-final">
+              {{ formatarMoeda(card.precoComDesconto) }} / {{ card.meses }} meses
+            </p>
+            <p class="price-month">
+              equivalente a {{ formatarMoeda(card.precoMensalEquivalente) }}/mês
+            </p>
+
+            <p class="period-description">
+              {{ card.economiaLabel }}
+            </p>
+          </ion-card-content>
+        </ion-card>
+      }
+    </div>
+  }
 </div>
