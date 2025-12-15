@@ -13,7 +13,7 @@ export class WizardStateService {
     channels: [],
     infrastructure: null,
     monthlyCredits: 1000,
-    tokensOpenAi: 50000,
+    tokensOpenAi: 1000000,
     selectedPeriod: null,
     baseMonthlyValue: null
   });
@@ -105,7 +105,7 @@ export class WizardStateService {
       channels: [],
       infrastructure: null,
       monthlyCredits: 1000,
-      tokensOpenAi: 50000,
+      tokensOpenAi: 1000000,
       selectedPeriod: null,
       baseMonthlyValue: null
     });

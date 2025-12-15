@@ -22,14 +22,14 @@
     <h3>Tokens OpenAI por Mês</h3>
     <ion-range
       [value]="tokensOpenAi()"
-      [min]="10000"
-      [max]="1000000"
-      [step]="10000"
+      [min]="1000000"
+      [max]="100000000"
+      [step]="1000000"
       [snaps]="true"
       [pin]="true"
       (ionChange)="onTokensChange($event)">
-      <ion-label slot="start">10k</ion-label>
-      <ion-label slot="end">1M+</ion-label>
+      <ion-label slot="start">1M</ion-label>
+      <ion-label slot="end">100M+</ion-label>
     </ion-range>
     <div class="slider-value">
       <span class="value-display">{{ formatarNumero(tokensOpenAi()) }} tokens</span>

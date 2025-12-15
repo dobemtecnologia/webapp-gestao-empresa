@@ -72,7 +72,14 @@ export class WizardStepPeriodComponent implements OnInit {
       return;
     }
 
-    this.periodCards = this.periodosApi.map((periodo) => {
+    // Ordena períodos pelo número de meses (do menor para o maior)
+    const periodosOrdenados = [...this.periodosApi].sort((a, b) => {
+      const mesesA = a.meses || 1;
+      const mesesB = b.meses || 1;
+      return mesesA - mesesB;
+    });
+
+    this.periodCards = periodosOrdenados.map((periodo) => {
       const meses = periodo.meses || 1;
       const precoBruto = baseMensal * meses;
 
