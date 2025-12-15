@@ -158,16 +158,6 @@
   }
 }
 
-// Botões de Navegação
-.wizard-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--ion-color-light);
-}
-
 // Footer Sticky
 .wizard-footer {
   position: fixed;
@@ -186,22 +176,15 @@
   padding: 1rem 2rem;
 }
 
-.footer-summary {
+.footer-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  
-  .summary-label {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--ion-color-dark);
-  }
-  
-  .summary-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--ion-color-primary);
-  }
+}
+
+.footer-actions-right {
+  display: flex;
+  gap: 1rem;
 }
 
 // Responsividade

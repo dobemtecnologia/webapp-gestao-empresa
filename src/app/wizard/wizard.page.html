@@ -116,15 +116,22 @@
           </div>
         }
 
-        <!-- Botões de Navegação -->
-        <div class="wizard-actions">
-          @if (currentStep() > 1) {
-            <ion-button fill="outline" (click)="previousStep()">
-              <ion-icon slot="start" name="arrow-back-outline"></ion-icon>
-              Anterior
-            </ion-button>
-          }
-          
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Sticky com Navegação -->
+  <div class="wizard-footer">
+    <div class="footer-content">
+      <div class="footer-actions">
+        @if (currentStep() > 1) {
+          <ion-button fill="outline" (click)="previousStep()">
+            <ion-icon slot="start" name="arrow-back-outline"></ion-icon>
+            Anterior
+          </ion-button>
+        }
+
+        <div class="footer-actions-right">
           @if (currentStep() < 7) {
             <ion-button 
               [disabled]="!canProceedToNextStep()" 
@@ -148,22 +155,6 @@
             </ion-button>
           }
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer Sticky com Resumo -->
-  <div class="wizard-footer">
-    <div class="footer-content">
-      <div class="footer-summary">
-        <span class="summary-label">Estimativa Mensal:</span>
-        <span class="summary-value">
-          @if (resultadoSimulacao) {
-            {{ formatarMoeda(resultadoSimulacao.valorMensalTotal) }}
-          } @else {
-            Calculando...
-          }
-        </span>
       </div>
     </div>
   </div>
