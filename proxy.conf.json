@@ -1,6 +1,6 @@
 {
   "/proxy": {
-    "target": "https://gestaoplanoempresa.dobemtecnologia.com",
+    "target": "http://localhost:9000",
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",

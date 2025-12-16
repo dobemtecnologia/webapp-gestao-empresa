@@ -38,5 +38,20 @@ export class TokenStorageService {
   public isLoggedIn(): boolean {
     return !!this.getToken();
   }
+
+  public getEmpresaId(): number | null {
+    const user = this.getUser();
+    return user?.empresaId || null;
+  }
+
+  public getEmpresaNome(): string | null {
+    const user = this.getUser();
+    return user?.empresaNome || null;
+  }
+
+  public getPapel(): string | null {
+    const user = this.getUser();
+    return user?.papel || null;
+  }
 }
 

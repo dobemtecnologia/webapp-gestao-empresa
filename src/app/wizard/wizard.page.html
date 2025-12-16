@@ -113,6 +113,18 @@
           <div class="wizard-step">
             <h2>Resumo do Plano</h2>
             <app-wizard-step-review></app-wizard-step-review>
+            
+            <div class="finalizar-actions">
+              <ion-button 
+                expand="block" 
+                color="success" 
+                size="large"
+                (click)="finalizarOrcamento()"
+                [disabled]="isLoading || !resultadoSimulacao || !selectedPeriod()">
+                <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+                Finalizar e Gerar Proposta
+              </ion-button>
+            </div>
           </div>
         }
 

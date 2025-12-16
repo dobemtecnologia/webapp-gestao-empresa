@@ -1,0 +1,72 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Informações para Proposta</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cancelar()">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="lead-capture-content">
+  <div class="lead-capture-container">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Preencha seus dados</ion-card-title>
+        <ion-card-subtitle>
+          Para gerar sua proposta personalizada, precisamos de algumas informações básicas.
+        </ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <form [formGroup]="leadForm" (ngSubmit)="onSubmit()">
+          <ion-item>
+            <ion-label position="stacked">Nome Completo *</ion-label>
+            <ion-input
+              formControlName="nome"
+              placeholder="Digite seu nome"
+              [class.ion-invalid]="leadForm.get('nome')?.invalid && leadForm.get('nome')?.touched">
+            </ion-input>
+          </ion-item>
+          <ion-text color="danger" *ngIf="leadForm.get('nome')?.invalid && leadForm.get('nome')?.touched">
+            <p class="ion-padding-start">Nome é obrigatório (mínimo 3 caracteres)</p>
+          </ion-text>
+
+          <ion-item>
+            <ion-label position="stacked">Email Corporativo *</ion-label>
+            <ion-input
+              type="email"
+              formControlName="email"
+              placeholder="seu@email.com"
+              [class.ion-invalid]="leadForm.get('email')?.invalid && leadForm.get('email')?.touched">
+            </ion-input>
+          </ion-item>
+          <ion-text color="danger" *ngIf="leadForm.get('email')?.invalid && leadForm.get('email')?.touched">
+            <p class="ion-padding-start">
+              <span *ngIf="leadForm.get('email')?.errors?.['required']">Email é obrigatório</span>
+              <span *ngIf="leadForm.get('email')?.errors?.['email']">Email inválido</span>
+            </p>
+          </ion-text>
+
+          <ion-item>
+            <ion-label position="stacked">WhatsApp (Opcional)</ion-label>
+            <ion-input
+              type="tel"
+              formControlName="telefone"
+              placeholder="(00) 00000-0000">
+            </ion-input>
+          </ion-item>
+
+          <ion-button
+            expand="block"
+            type="submit"
+            [disabled]="leadForm.invalid"
+            class="submit-button">
+            <ion-icon slot="start" name="checkmark-outline"></ion-icon>
+            Ver Proposta
+          </ion-button>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

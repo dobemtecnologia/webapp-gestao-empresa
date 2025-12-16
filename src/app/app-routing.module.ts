@@ -20,8 +20,13 @@ const routes: Routes = [
   },
   {
     path: 'wizard',
-    loadChildren: () => import('./wizard/wizard.module').then( m => m.WizardPageModule),
-    canActivate: [AuthGuard]
+    loadChildren: () => import('./wizard/wizard.module').then( m => m.WizardPageModule)
+    // Sem AuthGuard para permitir acesso de leads anônimos
+  },
+  {
+    path: 'resultado-orcamento',
+    loadChildren: () => import('./resultado-orcamento/resultado-orcamento.module').then( m => m.ResultadoOrcamentoPageModule)
+    // Sem AuthGuard para permitir acesso via link compartilhável
   },
   {
     path: 'login',

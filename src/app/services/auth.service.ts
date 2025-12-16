@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = `${environment.apiUrl}/api/authenticate`;
+  private apiUrl = `${environment.apiUrl}/api/authenticate/context`;
 
   constructor(
     private http: HttpClient,
@@ -28,8 +28,8 @@ export class AuthService {
       tap(response => {
         if (response.id_token) {
           this.tokenStorage.saveToken(response.id_token);
-          // Salvar informações do usuário se necessário
-          // this.tokenStorage.saveUser(userData);
+          // Salva todas as informações do usuário retornadas pela API
+          this.tokenStorage.saveUser(response);
         }
       })
     );
@@ -49,7 +49,7 @@ export class AuthService {
   }
 
   checkAuthentication(): Observable<any> {
-    return this.http.get(`${this.apiUrl}`);
+    return this.http.get(`${environment.apiUrl}/api/authenticate`);
   }
 }
 
