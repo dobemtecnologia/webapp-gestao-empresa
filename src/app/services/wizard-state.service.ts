@@ -3,13 +3,21 @@ import { WizardState } from '../models/wizard-state.model';
 import { SetorDTO } from '../models/setor.model';
 import { Assistente } from '../models/assistente.model';
 
+export interface ChatMessage {
+  sender: 'eva' | 'user';
+  type: 'text' | 'component';
+  content: string;
+  componentRef?: any; // Identificador do componente a ser renderizado (ex: 'step-sectors')
+  timestamp: Date;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class WizardStateService {
   // Estado do wizard usando Signals
   private state = signal<WizardState>({
-    currentStep: 1,
+    currentStep: 0, // Passo 0 para pedir o nome
     selectedSectors: [],
     assistants: [],
     channels: [],
@@ -21,7 +29,14 @@ export class WizardStateService {
     baseMonthlyValue: null
   });
 
+  // Novos Signals para o Chat
+  private _chatHistory = signal<ChatMessage[]>([]);
+  private _userName = signal<string>('');
+
   // Getters computados
+  readonly chatHistory = computed(() => this._chatHistory());
+  readonly userName = computed(() => this._userName());
+
   readonly currentStep = computed(() => this.state().currentStep);
   readonly selectedSectors = computed(() => this.state().selectedSectors);
   readonly assistants = computed(() => this.state().assistants);
@@ -70,17 +85,29 @@ export class WizardStateService {
     return Array.from(agentesMap.values());
   });
 
-  // Ações para atualizar o estado
+  // Ações para o Chat
+  addMessage(message: Omit<ChatMessage, 'timestamp'>) {
+    this._chatHistory.update(history => [
+      ...history,
+      { ...message, timestamp: new Date() }
+    ]);
+  }
+
+  setUserName(name: string) {
+    this._userName.set(name);
+  }
+
+  // Ações para atualizar o estado do Wizard
   setCurrentStep(step: number) {
     this.state.update(s => ({ ...s, currentStep: step }));
   }
 
   nextStep() {
-    this.state.update(s => ({ ...s, currentStep: Math.min(7, s.currentStep + 1) }));
+    this.state.update(s => ({ ...s, currentStep: Math.min(8, s.currentStep + 1) })); // Aumentado para 8 por conta do passo inicial
   }
 
   previousStep() {
-    this.state.update(s => ({ ...s, currentStep: Math.max(1, s.currentStep - 1) }));
+    this.state.update(s => ({ ...s, currentStep: Math.max(0, s.currentStep - 1) }));
   }
 
   toggleSector(setor: SetorDTO) {
@@ -198,8 +225,10 @@ export class WizardStateService {
   }
 
   reset() {
+    this._chatHistory.set([]);
+    this._userName.set('');
     this.state.set({
-      currentStep: 1,
+      currentStep: 0,
       selectedSectors: [],
       assistants: [],
       channels: [],

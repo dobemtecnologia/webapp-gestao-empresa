@@ -1,174 +1,197 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>Wizard de Simulação</ion-title>
+<ion-header class="ion-no-border">
+  <ion-toolbar color="dark">
+    <div class="chat-header">
+      <div class="avatar-container">
+        <img src="assets/evah.png" alt="Eva" class="avatar-img">
+        <div class="status-indicator"></div>
+      </div>
+      <div class="header-info">
+        <h2>Eva</h2>
+        <span class="status-text">Online agora</span>
+      </div>
+      <ion-buttons slot="end">
+        <ion-button (click)="resetWizard()">
+          <ion-icon name="refresh-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="wizard-content">
-  <div class="wizard-container">
-    <!-- Layout de duas colunas -->
-    <div class="wizard-layout">
-      <!-- Coluna Esquerda - Evah -->
-      <div class="wizard-sidebar">
-        <div class="evah-container">
-          <div class="evah-avatar">
-            <img src="assets/evah.png" alt="Evah" class="evah-image">
-          </div>
-          <div class="evah-message">
-            @if (currentStep() === 1) {
-              <p>Olá! Sou a Evah. Para começar, em quais áreas sua empresa precisa de reforço hoje?</p>
-            } @else if (currentStep() === 2) {
-              <p>Ótimo! Baseado nos setores, estes são os especialistas disponíveis. Quantos de cada você precisa?</p>
-            } @else if (currentStep() === 3) {
-              <p>Por onde esses assistentes vão falar com seu cliente?</p>
-            } @else if (currentStep() === 4) {
-              <p>Qual tipo de infraestrutura você prefere?</p>
-            } @else if (currentStep() === 5) {
-              <p>Qual sua estimativa de conversas por mês?</p>
-            }             @else if (currentStep() === 6) {
-              <p>Escolha o período de pagamento que melhor se adequa ao seu negócio.</p>
-            } @else if (currentStep() === 7) {
-              <p>Pronto! Aqui está o desenho da sua operação.</p>
-            }
-          </div>
-        </div>
-        
-        <!-- Indicador de progresso -->
-        <div class="progress-indicator">
-          @for (step of [1, 2, 3, 4, 5, 6, 7]; track step) {
-            <div class="step-dot" [class.active]="currentStep() >= step" [class.current]="currentStep() === step">
-              <span>{{ step }}</span>
-            </div>
+<ion-content [fullscreen]="true" class="chat-content" #content>
+  <div class="chat-container">
+    @for (msg of chatHistory(); track msg.timestamp) {
+      <div class="message-wrapper" [class.user-message]="msg.sender === 'user'" [class.eva-message]="msg.sender === 'eva'">
+        <div class="message-bubble">
+          @if (msg.type === 'text') {
+            <p [innerHTML]="msg.content"></p>
           }
+          <span class="message-time">{{ msg.timestamp | date:'HH:mm' }}</span>
         </div>
       </div>
+    }
 
-      <!-- Coluna Direita - Formulário -->
-      <div class="wizard-main">
-        <!-- Passo 1: Setores -->
-        @if (currentStep() === 1) {
-          <div class="wizard-step">
-            <h2>Selecione os Setores</h2>
-            @if (carregandoSetores) {
-              <div class="loading-wrapper">
-                <ion-spinner></ion-spinner>
-                <p>Carregando setores...</p>
-              </div>
-            } @else if (setoresDisponiveis.length === 0) {
-              <div class="no-data">
-                <p>Nenhum setor disponível no momento.</p>
-              </div>
-            } @else {
-              <div class="sectors-grid">
-                @for (setor of setoresDisponiveis; track setor.id) {
-                  <ion-card 
-                    class="sector-card" 
-                    [class.selected]="isSetorSelected(setor)"
-                    (click)="toggleSetor(setor); $event.stopPropagation()">
-                    <ion-card-content>
-                      @if (setor.icone) {
-                        <ion-icon [name]="setor.icone"></ion-icon>
-                      } @else {
-                        <ion-icon name="business-outline"></ion-icon>
-                      }
-                      <h3>{{ setor.nome }}</h3>
-                      @if (setor.descricao) {
-                        <p class="sector-description">{{ setor.descricao }}</p>
-                      }
-                    </ion-card-content>
-                  </ion-card>
-                }
-              </div>
-            }
+    @if (isTyping) {
+      <div class="message-wrapper eva-message typing-wrapper">
+        <div class="message-bubble typing-bubble">
+          <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
           </div>
-        }
-
-        <!-- Passo 2: Assistentes -->
-        @if (currentStep() === 2) {
-          <div class="wizard-step">
-            <h2>Selecione os Assistentes</h2>
-            <app-wizard-step-assistants></app-wizard-step-assistants>
-          </div>
-        }
-
-        <!-- Passo 3: Canais -->
-        @if (currentStep() === 3) {
-          <div class="wizard-step">
-            <h2>Selecione os Canais</h2>
-            <app-wizard-step-channels></app-wizard-step-channels>
-          </div>
-        }
-
-        <!-- Passo 4: Infraestrutura -->
-        @if (currentStep() === 4) {
-          <div class="wizard-step">
-            <h2>Escolha a Infraestrutura</h2>
-            <app-wizard-step-infrastructure></app-wizard-step-infrastructure>
-          </div>
-        }
-
-        <!-- Passo 5: Volume -->
-        @if (currentStep() === 5) {
-          <div class="wizard-step">
-            <h2>Volume de Conversas</h2>
-            <app-wizard-step-volume></app-wizard-step-volume>
-          </div>
-        }
-
-        <!-- Passo 6: Período -->
-        @if (currentStep() === 6) {
-          <div class="wizard-step">
-            <h2>Selecione o Período de Pagamento</h2>
-            <app-wizard-step-period></app-wizard-step-period>
-          </div>
-        }
-
-        <!-- Passo 7: Resumo -->
-        @if (currentStep() === 7) {
-          <div class="wizard-step">
-            <h2>Resumo do Plano</h2>
-            <app-wizard-step-review></app-wizard-step-review>
-            
-            <div class="finalizar-actions">
-              <ion-button 
-                expand="block" 
-                color="success" 
-                size="large"
-                (click)="finalizarOrcamento()"
-                [disabled]="isLoading || !resultadoSimulacao || !selectedPeriod()">
-                <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
-                Finalizar e Gerar Proposta
-              </ion-button>
-            </div>
-          </div>
-        }
-
-      </div>
-    </div>
-  </div>
-
-  <!-- Footer Sticky com Navegação -->
-  <div class="wizard-footer">
-    <div class="footer-content">
-      <div class="footer-actions">
-        @if (currentStep() > 1) {
-          <ion-button fill="outline" (click)="previousStep()">
-            <ion-icon slot="start" name="arrow-back-outline"></ion-icon>
-            Anterior
-          </ion-button>
-        }
-
-        <div class="footer-actions-right">
-          @if (currentStep() < 7) {
-            <ion-button 
-              [disabled]="!canProceedToNextStep()" 
-              (click)="nextStep()">
-              Próximo
-              <ion-icon slot="end" name="arrow-forward-outline"></ion-icon>
-            </ion-button>
-          }
         </div>
       </div>
-    </div>
+    }
+    
+    <div id="scroll-anchor"></div>
   </div>
 </ion-content>
+
+<ion-footer class="chat-input-area" [class.hidden]="isTyping">
+  <div class="input-container">
+    
+    <!-- Passo 0: Nome -->
+    @if (currentStep() === 0) {
+      <div class="step-input name-input">
+        <ion-item lines="none" class="custom-input">
+          <ion-input 
+            placeholder="Digite seu nome..." 
+            [(ngModel)]="tempName"
+            (keyup.enter)="confirmName()">
+          </ion-input>
+          <ion-button slot="end" fill="clear" (click)="confirmName()" [disabled]="!tempName">
+            <ion-icon name="send"></ion-icon>
+          </ion-button>
+        </ion-item>
+      </div>
+    }
+
+    <!-- Passo 1: Setores -->
+    @if (currentStep() === 1) {
+      <div class="step-input component-input">
+        <div class="input-header">
+          <span>Selecione os setores</span>
+        </div>
+        
+        <div class="sectors-grid-mini">
+          @if (carregandoSetores) {
+            <ion-spinner></ion-spinner>
+          } @else {
+            @for (setor of setoresDisponiveis; track setor.id) {
+              <div 
+                class="sector-chip" 
+                [class.selected]="isSetorSelected(setor)"
+                (click)="toggleSetor(setor)">
+                <ion-icon [name]="setor.icone || 'business'"></ion-icon>
+                <span>{{ setor.nome }}</span>
+              </div>
+            }
+          }
+        </div>
+
+        <ion-button expand="block" (click)="nextStep()" [disabled]="selectedSectors().length === 0" class="action-btn">
+          Confirmar Setores
+        </ion-button>
+      </div>
+    }
+
+    <!-- Passo 2: Assistentes -->
+    @if (currentStep() === 2) {
+      <div class="step-input component-input">
+        <div class="input-header">
+          <span>Defina a quantidade</span>
+        </div>
+        <div class="scrollable-component">
+          <app-wizard-step-assistants></app-wizard-step-assistants>
+        </div>
+        <ion-button expand="block" (click)="nextStep()" [disabled]="!canProceedToNextStep()" class="action-btn">
+          Confirmar Assistentes
+        </ion-button>
+      </div>
+    }
+
+    <!-- Passo 3: Canais -->
+    @if (currentStep() === 3) {
+      <div class="step-input component-input">
+        <div class="input-header">
+          <span>Configure os canais</span>
+        </div>
+        <div class="scrollable-component">
+          <app-wizard-step-channels></app-wizard-step-channels>
+        </div>
+        <ion-button expand="block" (click)="nextStep()" [disabled]="!canProceedToNextStep()" class="action-btn">
+          Confirmar Canais
+        </ion-button>
+      </div>
+    }
+
+    <!-- Passo 4: Infraestrutura -->
+    @if (currentStep() === 4) {
+      <div class="step-input component-input">
+         <div class="input-header">
+          <span>Escolha a infraestrutura</span>
+        </div>
+        <div class="scrollable-component">
+          <app-wizard-step-infrastructure></app-wizard-step-infrastructure>
+        </div>
+        <ion-button expand="block" (click)="nextStep()" [disabled]="!canProceedToNextStep()" class="action-btn">
+          Confirmar Infraestrutura
+        </ion-button>
+      </div>
+    }
+
+    <!-- Passo 5: Volume -->
+    @if (currentStep() === 5) {
+      <div class="step-input component-input">
+        <div class="input-header">
+          <span>Volume Mensal</span>
+        </div>
+        <div class="scrollable-component">
+          <app-wizard-step-volume></app-wizard-step-volume>
+        </div>
+        <ion-button expand="block" (click)="nextStep()" [disabled]="!canProceedToNextStep()" class="action-btn">
+          Confirmar Volume
+        </ion-button>
+      </div>
+    }
+
+    <!-- Passo 6: Período -->
+    @if (currentStep() === 6) {
+      <div class="step-input component-input">
+        <div class="input-header">
+          <span>Período de Contratação</span>
+        </div>
+        <div class="scrollable-component">
+          <app-wizard-step-period></app-wizard-step-period>
+        </div>
+        <!-- O componente de período já deve chamar o nextStep ou selecionamos aqui -->
+        <!-- Vou assumir que o usuário seleciona no card e clica em confirmar -->
+         <ion-button expand="block" (click)="nextStep()" [disabled]="!canProceedToNextStep()" class="action-btn">
+          Confirmar Período
+        </ion-button>
+      </div>
+    }
+
+    <!-- Passo 7: Resumo/Finalização -->
+    @if (currentStep() === 7) {
+      <div class="step-input component-input final-step">
+         <div class="input-header">
+          <span>Revisão Final</span>
+        </div>
+        <div class="scrollable-component">
+          <app-wizard-step-review></app-wizard-step-review>
+        </div>
+        <ion-button 
+          expand="block" 
+          color="success" 
+          (click)="finalizarOrcamento()"
+          [disabled]="isLoading || !resultadoSimulacao" 
+          class="action-btn final-btn">
+          <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+          Gerar Proposta Oficial
+        </ion-button>
+      </div>
+    }
+
+  </div>
+</ion-footer>
