@@ -5,3 +5,6 @@ export interface VendedorDTO {
   tipo?: 'INTERNO' | 'PARCEIRO' | 'SISTEMA_IA';
   ativo?: boolean;
 }
+
+
+

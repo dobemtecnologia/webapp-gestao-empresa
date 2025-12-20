@@ -118,3 +118,6 @@ export class ResultadoOrcamentoPage implements OnInit {
     return date.toLocaleDateString('pt-BR');
   }
 }
+
+
+
