@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { WizardStateService } from '../services/wizard-state.service';
 import { PlanoService } from '../services/plano.service';
 import { OrcamentoService } from '../services/orcamento.service';
+import { SetorService } from '../services/setor.service';
 import { AuthService } from '../services/auth.service';
 import { TokenStorageService } from '../services/token-storage.service';
 import { PlanoBlueprint } from '../models/plano-blueprint.model';
@@ -10,6 +11,7 @@ import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model
 import { OrcamentoDTO, ItemOrcamentoDTO, LeadData } from '../models/orcamento.model';
 import { PeriodoContratacao } from '../models/periodo-contratacao.model';
 import { VendedorDTO } from '../models/vendedor.model';
+import { SetorDTO } from '../models/setor.model';
 import { LoadingController, ToastController, ModalController } from '@ionic/angular';
 import { LeadCaptureModalComponent } from './components/lead-capture-modal.component';
 import { firstValueFrom, of } from 'rxjs';
@@ -26,6 +28,7 @@ export class WizardPage implements OnInit {
   private router = inject(Router);
   private planoService = inject(PlanoService);
   private orcamentoService = inject(OrcamentoService);
+  private setorService = inject(SetorService);
   private authService = inject(AuthService);
   private tokenStorage = inject(TokenStorageService);
   private loadingController = inject(LoadingController);
@@ -34,6 +37,8 @@ export class WizardPage implements OnInit {
 
   resultadoSimulacao?: PlanoSimulacaoResponse;
   isLoading = false;
+  carregandoSetores = false;
+  setoresDisponiveis: SetorDTO[] = [];
 
   // Computed signals do estado
   currentStep = this.wizardState.currentStep;
@@ -48,6 +53,31 @@ export class WizardPage implements OnInit {
   ngOnInit() {
     // Reset do wizard ao entrar na página
     this.wizardState.reset();
+    // Carrega setores da API
+    this.carregarSetores();
+  }
+
+  carregarSetores() {
+    this.carregandoSetores = true;
+    this.setorService.getAllSetors('id,asc', 0, 100).subscribe({
+      next: (setores) => {
+        this.setoresDisponiveis = setores;
+        this.carregandoSetores = false;
+      },
+      error: (error) => {
+        console.error('Erro ao carregar setores:', error);
+        this.carregandoSetores = false;
+        this.showToast('Erro ao carregar setores. Tente novamente.', 'danger');
+      }
+    });
+  }
+
+  isSetorSelected(setor: SetorDTO): boolean {
+    return this.selectedSectors().some(s => s.id === setor.id);
+  }
+
+  toggleSetor(setor: SetorDTO) {
+    this.wizardState.toggleSector(setor);
   }
 
   async nextStep() {

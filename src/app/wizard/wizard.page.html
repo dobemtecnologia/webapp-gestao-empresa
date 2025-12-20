@@ -52,19 +52,37 @@
         @if (currentStep() === 1) {
           <div class="wizard-step">
             <h2>Selecione os Setores</h2>
-            <div class="sectors-grid">
-              @for (sector of ['Vendas', 'Suporte', 'RH', 'Financeiro', 'Marketing']; track sector) {
-                <ion-card 
-                  class="sector-card" 
-                  [class.selected]="selectedSectors().includes(sector)"
-                  (click)="wizardState.toggleSector(sector); $event.stopPropagation()">
-                  <ion-card-content>
-                    <ion-icon name="business-outline"></ion-icon>
-                    <h3>{{ sector }}</h3>
-                  </ion-card-content>
-                </ion-card>
-              }
-            </div>
+            @if (carregandoSetores) {
+              <div class="loading-wrapper">
+                <ion-spinner></ion-spinner>
+                <p>Carregando setores...</p>
+              </div>
+            } @else if (setoresDisponiveis.length === 0) {
+              <div class="no-data">
+                <p>Nenhum setor disponível no momento.</p>
+              </div>
+            } @else {
+              <div class="sectors-grid">
+                @for (setor of setoresDisponiveis; track setor.id) {
+                  <ion-card 
+                    class="sector-card" 
+                    [class.selected]="isSetorSelected(setor)"
+                    (click)="toggleSetor(setor); $event.stopPropagation()">
+                    <ion-card-content>
+                      @if (setor.icone) {
+                        <ion-icon [name]="setor.icone"></ion-icon>
+                      } @else {
+                        <ion-icon name="business-outline"></ion-icon>
+                      }
+                      <h3>{{ setor.nome }}</h3>
+                      @if (setor.descricao) {
+                        <p class="sector-description">{{ setor.descricao }}</p>
+                      }
+                    </ion-card-content>
+                  </ion-card>
+                }
+              </div>
+            }
           </div>
         }
 

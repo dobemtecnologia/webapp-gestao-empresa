@@ -1,5 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { WizardState, SETORES_DISPONIVEIS } from '../models/wizard-state.model';
+import { WizardState } from '../models/wizard-state.model';
+import { SetorDTO } from '../models/setor.model';
+import { Assistente } from '../models/assistente.model';
 
 @Injectable({
   providedIn: 'root'
@@ -24,13 +26,49 @@ export class WizardStateService {
   readonly selectedSectors = computed(() => this.state().selectedSectors);
   readonly assistants = computed(() => this.state().assistants);
   readonly channels = computed(() => this.state().channels);
-   // Mapeamento Assistente x Canal
+  // Mapeamento Assistente x Canal
   readonly assistantChannels = computed(() => this.state().assistantChannels);
   readonly infrastructure = computed(() => this.state().infrastructure);
   readonly monthlyCredits = computed(() => this.state().monthlyCredits);
   readonly tokensOpenAi = computed(() => this.state().tokensOpenAi);
   readonly selectedPeriod = computed(() => this.state().selectedPeriod);
   readonly baseMonthlyValue = computed(() => this.state().baseMonthlyValue ?? null);
+
+  // Computed signal para assistentes consolidados dos setores selecionados (sem duplicatas)
+  readonly availableAssistants = computed(() => {
+    const selectedSectors = this.state().selectedSectors;
+    const assistantsMap = new Map<number, Assistente>();
+    
+    selectedSectors.forEach(setor => {
+      if (setor.assistentes && Array.isArray(setor.assistentes)) {
+        setor.assistentes.forEach(assistente => {
+          if (assistente.ativo !== false && !assistantsMap.has(assistente.id)) {
+            assistantsMap.set(assistente.id, assistente);
+          }
+        });
+      }
+    });
+    
+    return Array.from(assistantsMap.values());
+  });
+
+  // Computed signal para agentes consolidados dos setores selecionados (sem duplicatas)
+  readonly availableAgentes = computed(() => {
+    const selectedSectors = this.state().selectedSectors;
+    const agentesMap = new Map<number, any>();
+    
+    selectedSectors.forEach(setor => {
+      if (setor.agentes && Array.isArray(setor.agentes)) {
+        setor.agentes.forEach(agente => {
+          if (agente.ativo !== false && !agentesMap.has(agente.id)) {
+            agentesMap.set(agente.id, agente);
+          }
+        });
+      }
+    });
+    
+    return Array.from(agentesMap.values());
+  });
 
   // Ações para atualizar o estado
   setCurrentStep(step: number) {
@@ -45,13 +83,43 @@ export class WizardStateService {
     this.state.update(s => ({ ...s, currentStep: Math.max(1, s.currentStep - 1) }));
   }
 
-  toggleSector(sector: string) {
+  toggleSector(setor: SetorDTO) {
     this.state.update(s => {
-      const sectors = s.selectedSectors.includes(sector)
-        ? s.selectedSectors.filter(sec => sec !== sector)
-        : [...s.selectedSectors, sector];
-      return { ...s, selectedSectors: sectors };
+      const setorIndex = s.selectedSectors.findIndex(sec => sec.id === setor.id);
+      let newSectors: SetorDTO[];
+      
+      if (setorIndex >= 0) {
+        // Remove o setor
+        newSectors = s.selectedSectors.filter(sec => sec.id !== setor.id);
+        // Remove assistentes e canais relacionados a este setor
+        const setorAssistenteIds = new Set(setor.assistentes?.map(a => a.id) || []);
+        const newAssistants = s.assistants.filter(a => {
+          // Mantém apenas assistentes que pertencem a outros setores selecionados
+          return s.selectedSectors.some(sec => 
+            sec.id !== setor.id && 
+            sec.assistentes?.some(as => as.id === a.id)
+          );
+        });
+        const newAssistantChannels = s.assistantChannels.filter(ac => 
+          !newAssistants.some(a => a.id === ac.assistantId)
+        );
+        
+        return { 
+          ...s, 
+          selectedSectors: newSectors,
+          assistants: newAssistants,
+          assistantChannels: newAssistantChannels
+        };
+      } else {
+        // Adiciona o setor
+        newSectors = [...s.selectedSectors, setor];
+        return { ...s, selectedSectors: newSectors };
+      }
     });
+  }
+
+  setSelectedSectors(setores: SetorDTO[]) {
+    this.state.update(s => ({ ...s, selectedSectors: setores }));
   }
 
   setAssistants(assistants: { id: number; nome: string; quantity: number; sector: string }[]) {

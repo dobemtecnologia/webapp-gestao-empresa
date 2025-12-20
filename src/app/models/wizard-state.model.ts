@@ -1,6 +1,8 @@
+import { SetorDTO } from './setor.model';
+
 export interface WizardState {
   currentStep: number; // 1 a 7
-  selectedSectors: string[]; // ['Vendas', 'Suporte', etc]
+  selectedSectors: SetorDTO[]; // Setores completos selecionados
   assistants: { id: number; nome: string; quantity: number; sector: string }[];
   channels: { id: number; nome: string; enabled: boolean }[];
   assistantChannels: { assistantId: number; channelId: number; enabled: boolean }[];
@@ -19,10 +21,4 @@ export interface PeriodOption {
   recomendado?: boolean;
 }
 
-export const SETORES_DISPONIVEIS = [
-  'Vendas',
-  'Suporte',
-  'RH',
-  'Financeiro',
-  'Marketing'
-];
+// SETORES_DISPONIVEIS removido - agora carregado dinamicamente da API

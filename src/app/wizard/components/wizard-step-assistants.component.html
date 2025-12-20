@@ -1,35 +1,45 @@
 <div class="assistants-list">
-  @if (carregandoAssistentes) {
-    <ion-spinner></ion-spinner>
+  @if (selectedSectors().length === 0) {
+    <div class="no-data">
+      <p>Selecione pelo menos um setor no passo anterior.</p>
+    </div>
+  } @else if (availableAssistants().length === 0) {
+    <div class="no-data">
+      <p>Nenhum assistente disponível para os setores selecionados.</p>
+    </div>
   } @else {
-    @for (sector of selectedSectors(); track sector) {
-      <div class="sector-section">
-        <h4>{{ sector }}</h4>
-        @for (assistente of getAssistantsForSector(sector); track assistente.id) {
-          <ion-item class="assistant-item">
-            <ion-label>
-              <h3>{{ assistente.nome }}</h3>
-              <p>{{ assistente.descricao || 'Assistente especializado' }}</p>
-            </ion-label>
-            <div class="quantity-controls" slot="end">
-              <ion-button 
-                fill="clear" 
-                size="small"
-                (click)="decrementQuantity(assistente.id, sector); $event.stopPropagation()"
-                [disabled]="getQuantity(assistente.id, sector) === 0">
-                <ion-icon name="remove-outline"></ion-icon>
-              </ion-button>
-              <span class="quantity-value">{{ getQuantity(assistente.id, sector) }}</span>
-              <ion-button 
-                fill="clear" 
-                size="small"
-                (click)="incrementQuantity(assistente.id, sector); $event.stopPropagation()">
-                <ion-icon name="add-outline"></ion-icon>
-              </ion-button>
-            </div>
-          </ion-item>
-        }
-      </div>
+    @for (setor of selectedSectors(); track setor.id) {
+      @if (setor.assistentes && setor.assistentes.length > 0) {
+        <div class="sector-section">
+          <h4>{{ setor.nome }}</h4>
+          @for (assistente of setor.assistentes; track assistente.id) {
+            @if (assistente.ativo !== false) {
+              <ion-item class="assistant-item">
+                <ion-label>
+                  <h3>{{ assistente.nome }}</h3>
+                  <p>{{ assistente.descricao || 'Assistente especializado' }}</p>
+                </ion-label>
+                <div class="quantity-controls" slot="end">
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    (click)="decrementQuantity(assistente.id, setor.nome); $event.stopPropagation()"
+                    [disabled]="getQuantity(assistente.id, setor.nome) === 0">
+                    <ion-icon name="remove-outline"></ion-icon>
+                  </ion-button>
+                  <span class="quantity-value">{{ getQuantity(assistente.id, setor.nome) }}</span>
+                  <ion-button 
+                    fill="clear" 
+                    size="small"
+                    (click)="incrementQuantity(assistente.id, setor.nome); $event.stopPropagation()">
+                    <ion-icon name="add-outline"></ion-icon>
+                  </ion-button>
+                </div>
+              </ion-item>
+            }
+          }
+        </div>
+      }
     }
   }
 </div>
