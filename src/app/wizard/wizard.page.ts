@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { WizardStateService, ChatMessage } from '../services/wizard-state.service';
 import { PlanoService } from '../services/plano.service';
@@ -10,13 +10,11 @@ import { PlanoBlueprint } from '../models/plano-blueprint.model';
 import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model';
 import { OrcamentoDTO, ItemOrcamentoDTO, LeadData } from '../models/orcamento.model';
 import { PeriodoContratacao } from '../models/periodo-contratacao.model';
-import { VendedorDTO } from '../models/vendedor.model';
 import { SetorDTO } from '../models/setor.model';
-import { LoadingController, ToastController, ModalController, MenuController, IonContent } from '@ionic/angular';
+import { LoadingController, ToastController, MenuController, IonContent } from '@ionic/angular';
 import { LoginVM } from '../models/login-vm.model';
-import { LeadCaptureModalComponent } from './components/lead-capture-modal.component';
 import { firstValueFrom, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-wizard',
@@ -36,18 +34,20 @@ export class WizardPage implements OnInit, OnDestroy {
   private tokenStorage = inject(TokenStorageService);
   private loadingController = inject(LoadingController);
   private toastController = inject(ToastController);
-  private modalController = inject(ModalController);
   private menuController = inject(MenuController);
 
   resultadoSimulacao?: PlanoSimulacaoResponse;
   isLoading = false;
   carregandoSetores = false;
   setoresDisponiveis: SetorDTO[] = [];
+  orcamentoFinalizadoHash: string | null = null;
   
   // Controle do Chat
   chatHistory = this.wizardState.chatHistory;
   isTyping = false;
-  tempName = ''; // Para o input do nome
+  tempName = ''; 
+  tempEmail = ''; // Para captura de lead
+  tempPhone = ''; // Opcional
 
   // Computed signals do estado
   currentStep = this.wizardState.currentStep;
@@ -99,20 +99,32 @@ export class WizardPage implements OnInit, OnDestroy {
   confirmName() {
     if (!this.tempName.trim()) return;
     
-    // Salva nome e adiciona mensagem do usuário
     this.wizardState.setUserName(this.tempName);
-    this.wizardState.addMessage({
-      sender: 'user',
-      type: 'text',
-      content: this.tempName
-    });
+    this.wizardState.addMessage({ sender: 'user', type: 'text', content: this.tempName });
     
     this.tempName = '';
-    this.wizardState.nextStep(); // Vai para Passo 1 (Setores)
+    this.wizardState.nextStep(); // Passo 1 (Setores)
     this.scrollToBottom();
     
-    // Resposta da Eva
     this.showEvaResponse(`Prazer, <strong>${this.wizardState.userName()}</strong>! 😉<br>Para eu entender melhor sua necessidade, em quais <strong>setores</strong> sua empresa precisa de reforço hoje?`);
+  }
+
+  confirmEmail() {
+    if (!this.isValidEmail(this.tempEmail)) {
+      this.showToast('Por favor, insira um e-mail válido.', 'warning');
+      return;
+    }
+
+    // 1. Adiciona mensagem do usuário e rola a tela
+    const contactInfo = this.tempPhone ? `${this.tempEmail} | ${this.tempPhone}` : this.tempEmail;
+    this.wizardState.addMessage({ sender: 'user', type: 'text', content: contactInfo });
+    this.scrollToBottom();
+    
+    // 2. Esconde o footer (input) imediatamente e mostra "Eva digitando..."
+    this.isTyping = true;
+
+    // 3. Inicia processo de finalização (API)
+    this.finalizarOrcamento();
   }
 
   async nextStep() {
@@ -135,6 +147,20 @@ export class WizardPage implements OnInit, OnDestroy {
 
     // Trigger da próxima pergunta da Eva
     this.triggerNextEvaQuestion(this.currentStep());
+  }
+
+  iniciarCapturaLead() {
+    // Passo 7 -> 8 (Captura de Lead)
+    this.wizardState.addMessage({ 
+      sender: 'user', 
+      type: 'text', 
+      content: 'Quero gerar a proposta oficial.' 
+    });
+    
+    this.wizardState.setCurrentStep(8); // Passo 8: Captura de Email
+    this.scrollToBottom();
+
+    this.showEvaResponse(`Com certeza, ${this.wizardState.userName()}! Já preparei tudo por aqui. 📄<br>Para onde posso enviar sua proposta formal e o link de acesso exclusivo?`);
   }
 
   private addUserResponseSummary(step: number) {
@@ -164,11 +190,7 @@ export class WizardPage implements OnInit, OnDestroy {
     }
 
     if (content) {
-      this.wizardState.addMessage({
-        sender: 'user',
-        type: 'text',
-        content: content
-      });
+      this.wizardState.addMessage({ sender: 'user', type: 'text', content });
     }
   }
 
@@ -202,25 +224,17 @@ export class WizardPage implements OnInit, OnDestroy {
       }
 
       if (message) {
-        this.wizardState.addMessage({
-          sender: 'eva',
-          type: 'text',
-          content: message
-        });
+        this.wizardState.addMessage({ sender: 'eva', type: 'text', content: message });
         this.scrollToBottom();
       }
-    }, 1500); // Delay para parecer digitação
+    }, 1500);
   }
 
   private showEvaResponse(content: string) {
     this.isTyping = true;
     setTimeout(() => {
       this.isTyping = false;
-      this.wizardState.addMessage({
-        sender: 'eva',
-        type: 'text',
-        content
-      });
+      this.wizardState.addMessage({ sender: 'eva', type: 'text', content });
       this.scrollToBottom();
     }, 1000);
   }
@@ -232,12 +246,121 @@ export class WizardPage implements OnInit, OnDestroy {
   }
 
   resetWizard() {
+    this.orcamentoFinalizadoHash = null;
+    this.tempEmail = '';
+    this.tempName = '';
+    this.tempPhone = ''; // Reset phone
     this.wizardState.reset();
     this.startChat();
   }
 
+  verPropostaCompleta() {
+    if (this.orcamentoFinalizadoHash) {
+      this.router.navigate(['/resultado-orcamento'], { queryParams: { hash: this.orcamentoFinalizadoHash } });
+    }
+  }
 
-  // --- Métodos Auxiliares Existentes (Mantidos para funcionar com os componentes) ---
+  // --- Lógica de Negócio ---
+
+  async finalizarOrcamento() {
+    if (!this.resultadoSimulacao || !this.selectedPeriod()) {
+      this.showToast('Simulação incompleta.', 'warning');
+      this.isTyping = false; // Restaura UI em caso de erro
+      return;
+    }
+
+    const leadData: LeadData = {
+      nome: this.wizardState.userName(),
+      email: this.tempEmail,
+      telefone: this.tempPhone
+    };
+
+    try {
+      this.isLoading = true;
+      
+      // Busca dados necessários
+      const periodoCodigo = this.selectedPeriod();
+      let periodoData: PeriodoContratacao | null = null;
+
+      if (periodoCodigo) {
+        const periodos = await firstValueFrom(this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([]))));
+        periodoData = periodos?.find(p => p.codigo === periodoCodigo && p.ativo) || null;
+      }
+
+      const vendedors = await firstValueFrom(this.planoService.getVendedors('id,asc', 0, 100).pipe(catchError(() => of([]))));
+      const vendedorId = vendedors?.find(v => v.tipo === 'SISTEMA_IA')?.id;
+
+      if (!vendedorId) throw new Error('Vendedor sistema não encontrado');
+
+      const orcamentoDTO = this.converterParaOrcamentoDTO(leadData, periodoData, vendedorId);
+
+      // Envia para API
+      this.orcamentoService.create(orcamentoDTO)
+        .pipe(
+          finalize(() => {
+            this.isLoading = false;
+            // Mantém isTyping como true por enquanto, pois vamos tratar no subscribe ou no timeout
+          })
+        )
+        .subscribe({
+          next: async (orcamento) => {
+            if (orcamento.codigoHash) {
+              // Sucesso direto
+              this.handleSuccess(orcamento);
+            } else if (orcamento.id) {
+              // Fallback: Tenta buscar pelo ID se o hash vier nulo na criação
+              console.warn('Hash nulo na criação. Tentando buscar pelo ID:', orcamento.id);
+              try {
+                const orcamentoCompleto = await firstValueFrom(this.orcamentoService.getById(orcamento.id!));
+                if (orcamentoCompleto && orcamentoCompleto.codigoHash) {
+                  this.handleSuccess(orcamentoCompleto);
+                } else {
+                  this.handleError(new Error('Hash não gerado mesmo após nova busca.'));
+                }
+              } catch (e) {
+                this.handleError(e);
+              }
+            } else {
+              this.handleError(new Error('Orçamento criado sem ID nem Hash.'));
+            }
+          },
+          error: (err) => {
+            this.handleError(err);
+          }
+        });
+
+    } catch (e) {
+      this.handleError(e);
+    }
+  }
+
+  private handleSuccess(orcamento: OrcamentoDTO) {
+    this.orcamentoFinalizadoHash = orcamento.codigoHash!;
+    
+    // Sucesso: Delay para naturalidade
+    setTimeout(() => {
+        this.isTyping = false; // AGORA mostra o footer
+        this.wizardState.setCurrentStep(9); // Passo 9: Sucesso
+        
+        this.wizardState.addMessage({
+          sender: 'eva',
+          type: 'text',
+          content: `Obrigada, <strong>${this.wizardState.userName()}</strong>! 💙<br><br>Aguarde nosso contato. Você receberá um e-mail em <strong>${this.tempEmail}</strong> com a proposta do orçamento que fizemos aqui.<br><br>Se precisar de mim, é só chamar!`
+        });
+        this.scrollToBottom();
+    }, 1000);
+  }
+
+  private handleError(err: any) {
+    console.error('Erro na finalização:', err);
+    this.isTyping = false; // Garante que destrava
+    this.isLoading = false;
+    this.showToast('Erro ao gerar proposta. Tente novamente.', 'danger');
+    this.wizardState.setCurrentStep(7); // Volta para review
+  }
+
+  // --- Métodos Auxiliares ---
+  // ... (restante dos métodos auxiliares mantidos igual)
 
   private async loginAutomatico(): Promise<void> {
     if (this.authService.isAuthenticated()) return;
@@ -284,8 +407,14 @@ export class WizardPage implements OnInit, OnDestroy {
       case 5: return this.monthlyCredits() > 0;
       case 6: return this.selectedPeriod() !== null;
       case 7: return true;
+      case 8: return this.isValidEmail(this.tempEmail);
       default: return false;
     }
+  }
+
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 
   private async simularPlano(): Promise<boolean> {
@@ -314,74 +443,7 @@ export class WizardPage implements OnInit, OnDestroy {
     });
   }
 
-  // Mantive a lógica de finalizarOrcamento e converterParaDTOs igual
-  // ... (Apenas garantindo que eles usem as propriedades da classe)
-
-  async finalizarOrcamento() {
-     // ... (Mesma lógica do arquivo original)
-    if (!this.resultadoSimulacao || !this.selectedPeriod()) {
-      this.showToast('Simulação incompleta.', 'warning');
-      return;
-    }
-
-    const isAuthenticated = this.authService.isAuthenticated();
-    let leadData: LeadData | undefined;
-
-    if (!isAuthenticated) {
-      const modal = await this.modalController.create({ component: LeadCaptureModalComponent });
-      await modal.present();
-      const { data } = await modal.onDidDismiss();
-      if (!data) return;
-      leadData = data;
-    }
-
-    // Lógica simplificada para buscar período e vendedor (mantida do original)
-    const periodoCodigo = this.selectedPeriod();
-    let periodoData: PeriodoContratacao | null = null;
-    
-    // ... Recuperação de dados (código abreviado para focar na mudança do chat)
-    // Vou reescrever o bloco principal para garantir funcionamento
-
-    try {
-        if (periodoCodigo) {
-            const periodos = await firstValueFrom(this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([]))));
-            periodoData = periodos?.find(p => p.codigo === periodoCodigo && p.ativo) || null;
-        }
-
-        const vendedors = await firstValueFrom(this.planoService.getVendedors('id,asc', 0, 100).pipe(catchError(() => of([]))));
-        const vendedorId = vendedors?.find(v => v.tipo === 'SISTEMA_IA')?.id;
-
-        if (!vendedorId) {
-             this.showToast('Erro: Vendedor sistema não encontrado.', 'danger');
-             return;
-        }
-
-        const orcamentoDTO = this.converterParaOrcamentoDTO(leadData, periodoData, vendedorId);
-        
-        const loading = await this.loadingController.create({ message: 'Gerando proposta...', spinner: 'crescent' });
-        await loading.present();
-
-        this.orcamentoService.create(orcamentoDTO).subscribe({
-            next: (orcamento) => {
-                loading.dismiss();
-                if (orcamento.codigoHash) {
-                    this.router.navigate(['/resultado-orcamento'], { queryParams: { hash: orcamento.codigoHash } });
-                }
-            },
-            error: (err) => {
-                loading.dismiss();
-                this.showToast('Erro ao criar orçamento.', 'danger');
-            }
-        });
-
-    } catch (e) {
-        console.error(e);
-        this.showToast('Erro inesperado.', 'danger');
-    }
-  }
-
   private converterParaOrcamentoDTO(leadData?: LeadData, periodoData?: PeriodoContratacao | null, vendedorId?: number | null): OrcamentoDTO {
-    // Mesma lógica anterior, copiando para garantir integridade
     const state = this.wizardState.getState();
     const simulacao = this.resultadoSimulacao!;
     const baseMensal = simulacao.valorMensalTotal;

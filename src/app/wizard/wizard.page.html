@@ -164,15 +164,13 @@
         <div class="scrollable-component">
           <app-wizard-step-period></app-wizard-step-period>
         </div>
-        <!-- O componente de período já deve chamar o nextStep ou selecionamos aqui -->
-        <!-- Vou assumir que o usuário seleciona no card e clica em confirmar -->
          <ion-button expand="block" (click)="nextStep()" [disabled]="!canProceedToNextStep()" class="action-btn">
           Confirmar Período
         </ion-button>
       </div>
     }
 
-    <!-- Passo 7: Resumo/Finalização -->
+    <!-- Passo 7: Resumo (Review) -->
     @if (currentStep() === 7) {
       <div class="step-input component-input final-step">
          <div class="input-header">
@@ -184,12 +182,73 @@
         <ion-button 
           expand="block" 
           color="success" 
-          (click)="finalizarOrcamento()"
+          (click)="iniciarCapturaLead()"
           [disabled]="isLoading || !resultadoSimulacao" 
           class="action-btn final-btn">
           <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
           Gerar Proposta Oficial
         </ion-button>
+      </div>
+    }
+
+    <!-- Passo 8: Captura de Lead (Email/Telefone) -->
+    @if (currentStep() === 8) {
+      <div class="step-input email-input">
+        <div class="input-header">
+          <span>Dados de Contato</span>
+        </div>
+        <div class="contact-form">
+          <ion-item lines="none" class="custom-input mb-2">
+            <ion-icon name="mail-outline" slot="start"></ion-icon>
+            <ion-input 
+              type="email" 
+              placeholder="Seu melhor e-mail..." 
+              [(ngModel)]="tempEmail"
+              (keyup.enter)="confirmEmail()">
+            </ion-input>
+          </ion-item>
+          
+          <ion-item lines="none" class="custom-input">
+            <ion-icon name="call-outline" slot="start"></ion-icon>
+            <ion-input 
+              type="tel" 
+              placeholder="WhatsApp (Opcional)..." 
+              [(ngModel)]="tempPhone"
+              (keyup.enter)="confirmEmail()">
+            </ion-input>
+          </ion-item>
+
+          <ion-button 
+            expand="block" 
+            (click)="confirmEmail()" 
+            [disabled]="isLoading || !tempEmail" 
+            class="action-btn">
+            @if (isLoading) {
+              <ion-spinner name="crescent" color="light"></ion-spinner>
+              <span class="ml-2">Enviando...</span>
+            } @else {
+              Enviar e Finalizar
+              <ion-icon name="send" slot="end"></ion-icon>
+            }
+          </ion-button>
+        </div>
+      </div>
+    }
+
+    <!-- Passo 9: Sucesso / Ações Finais -->
+    @if (currentStep() === 9) {
+      <div class="step-input success-actions">
+        <div class="success-buttons">
+          <ion-button expand="block" color="tertiary" (click)="verPropostaCompleta()" class="action-btn">
+            <ion-icon name="document-text-outline" slot="start"></ion-icon>
+            Ver Proposta Completa
+          </ion-button>
+          
+          <ion-button expand="block" fill="outline" color="light" (click)="resetWizard()" class="action-btn mt-2">
+            <ion-icon name="refresh-outline" slot="start"></ion-icon>
+            Nova Simulação
+          </ion-button>
+        </div>
       </div>
     }
 

@@ -184,11 +184,38 @@
     --color: #fff;
     --placeholder-color: #888;
   }
+  
+  ion-icon {
+    color: #888;
+    margin-right: 8px;
+  }
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
 }
 
 .action-btn {
   margin-top: 1rem;
   --border-radius: 12px;
+}
+
+// Formulário de Contato
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+// Ações de Sucesso
+.success-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 // Componentes Minimizados (Para o Input Area)
