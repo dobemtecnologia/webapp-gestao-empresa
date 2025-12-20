@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { WizardStateService } from '../services/wizard-state.service';
 import { PlanoService } from '../services/plano.service';
@@ -12,7 +12,8 @@ import { OrcamentoDTO, ItemOrcamentoDTO, LeadData } from '../models/orcamento.mo
 import { PeriodoContratacao } from '../models/periodo-contratacao.model';
 import { VendedorDTO } from '../models/vendedor.model';
 import { SetorDTO } from '../models/setor.model';
-import { LoadingController, ToastController, ModalController } from '@ionic/angular';
+import { LoadingController, ToastController, ModalController, MenuController } from '@ionic/angular';
+import { LoginVM } from '../models/login-vm.model';
 import { LeadCaptureModalComponent } from './components/lead-capture-modal.component';
 import { firstValueFrom, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -23,7 +24,7 @@ import { catchError } from 'rxjs/operators';
   styleUrls: ['./wizard.page.scss'],
   standalone: false,
 })
-export class WizardPage implements OnInit {
+export class WizardPage implements OnInit, OnDestroy {
   wizardState = inject(WizardStateService);
   private router = inject(Router);
   private planoService = inject(PlanoService);
@@ -34,6 +35,7 @@ export class WizardPage implements OnInit {
   private loadingController = inject(LoadingController);
   private toastController = inject(ToastController);
   private modalController = inject(ModalController);
+  private menuController = inject(MenuController);
 
   resultadoSimulacao?: PlanoSimulacaoResponse;
   isLoading = false;
@@ -50,11 +52,51 @@ export class WizardPage implements OnInit {
   tokensOpenAi = this.wizardState.tokensOpenAi;
   selectedPeriod = this.wizardState.selectedPeriod;
 
-  ngOnInit() {
+  async ngOnInit() {
+    // Desabilita o menu lateral para esta página
+    await this.menuController.enable(false);
+    
+    // Realiza login automático se não estiver autenticado (antes de carregar dados)
+    await this.loginAutomatico();
+    
     // Reset do wizard ao entrar na página
     this.wizardState.reset();
-    // Carrega setores da API
+    
+    // Carrega setores da API (agora com autenticação garantida)
     this.carregarSetores();
+  }
+
+  ngOnDestroy() {
+    // O menu será reabilitado automaticamente pelo app.component quando navegar para outra rota
+  }
+
+  private async loginAutomatico(): Promise<void> {
+    // Se já estiver autenticado, não precisa fazer login novamente
+    if (this.authService.isAuthenticated()) {
+      return;
+    }
+
+    // Login automático com credenciais padrão
+    const credentials: LoginVM = {
+      username: 'admin',
+      password: 'admin',
+      rememberMe: false
+    };
+
+    try {
+      await firstValueFrom(
+        this.authService.login(credentials).pipe(
+          catchError((error) => {
+            console.error('Erro no login automático:', error);
+            // Não exibe erro para o usuário, apenas log
+            return of(null);
+          })
+        )
+      );
+    } catch (error) {
+      console.error('Erro no login automático:', error);
+      // Continua mesmo se o login falhar (usuário pode não conseguir acessar APIs que requerem auth)
+    }
   }
 
   carregarSetores() {
@@ -399,7 +441,7 @@ export class WizardPage implements OnInit {
     ];
 
     return {
-      nomePlano: `Plano ${state.selectedSectors.join(', ')}`,
+      nomePlano: `Plano ${state.selectedSectors.map(s => s.nome).join(', ')}`,
       itens,
       consumoEstimado: {
         tokensOpenAi: state.tokensOpenAi,

@@ -34,7 +34,7 @@ export class AppComponent implements OnInit {
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: any) => {
-        if (event.url === '/login' || event.url.startsWith('/login')) {
+        if (event.url === '/login' || event.url.startsWith('/login') || event.url === '/wizard' || event.url.startsWith('/wizard')) {
           this.menuController.enable(false);
         } else {
           this.menuController.enable(true);
