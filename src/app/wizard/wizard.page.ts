@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { WizardStateService, ChatMessage } from '../services/wizard-state.service';
+import { WizardFirebaseService } from '../services/wizard-firebase.service';
 import { PlanoService } from '../services/plano.service';
 import { OrcamentoService } from '../services/orcamento.service';
 import { SetorService } from '../services/setor.service';
@@ -26,6 +27,7 @@ export class WizardPage implements OnInit, OnDestroy {
   @ViewChild('content', { static: false }) content?: IonContent;
   
   wizardState = inject(WizardStateService);
+  private firebaseService = inject(WizardFirebaseService);
   private router = inject(Router);
   private planoService = inject(PlanoService);
   private orcamentoService = inject(OrcamentoService);
@@ -62,11 +64,34 @@ export class WizardPage implements OnInit, OnDestroy {
   async ngOnInit() {
     await this.menuController.enable(false);
     await this.loginAutomatico();
-    this.wizardState.reset();
+    
+    // Carrega setores primeiro (necessário para renderizar)
     this.carregarSetores();
     
-    // Inicia o Chat
-    setTimeout(() => this.startChat(), 500);
+    // Cria ou recupera o Session ID logo no início (garante persistência do navegador)
+    // Isso garante que mesmo novos usuários tenham um ID único associado ao navegador
+    const sessionId = this.firebaseService.getOrCreateSessionId();
+    console.log('📝 Session ID para esta sessão:', sessionId);
+    
+    // Tenta restaurar sessão do Firebase ANTES de resetar
+    console.log('Verificando sessão existente no Firebase...');
+    const restored = await this.wizardState.restoreSession();
+    
+    if (restored) {
+      // Sessão restaurada com sucesso - apenas rola para o final do chat
+      console.log('✅ Sessão restaurada! Carregando histórico...');
+      this.scrollToBottom();
+      
+      // Restaura dados temporários se necessário
+      if (this.wizardState.userName()) {
+        this.tempName = this.wizardState.userName();
+      }
+    } else {
+      // Não há sessão - começa do zero
+      console.log('🆕 Nenhuma sessão encontrada. Iniciando nova conversa...');
+      this.wizardState.reset();
+      setTimeout(() => this.startChat(), 500);
+    }
   }
 
   ngOnDestroy() {

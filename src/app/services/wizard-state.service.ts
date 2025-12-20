@@ -36,15 +36,20 @@ export class WizardStateService {
   private _chatHistory = signal<ChatMessage[]>([]);
   private _userName = signal<string>('');
 
+  private isRestoring = false; // Flag para evitar salvar durante restauração
+
   constructor() {
     // Efeito para salvar no Firebase sempre que o estado mudar
     effect(() => {
+      // Não salva se estiver restaurando (evita loop)
+      if (this.isRestoring) return;
+      
       const currentState = this.state();
       const currentHistory = this._chatHistory();
       const currentName = this._userName();
 
-      // Debounce simples ou verificação para não salvar o estado inicial vazio
-      if (currentHistory.length > 0 || currentName) {
+      // Salva se houver dados relevantes
+      if (currentHistory.length > 0 || currentName || currentState.currentStep > 0) {
         this.firebaseService.saveSessionState(currentState, currentHistory, { name: currentName });
       }
     });
@@ -104,13 +109,42 @@ export class WizardStateService {
 
   // Método para restaurar sessão
   async restoreSession() {
-    const sessionData = await this.firebaseService.loadSessionState();
-    if (sessionData) {
-      if (sessionData.currentState) this.state.set(sessionData.currentState);
-      if (sessionData.chatHistory) this._chatHistory.set(sessionData.chatHistory);
-      if (sessionData.userName) this._userName.set(sessionData.userName);
-      return true;
+    this.isRestoring = true; // Previne salvamento durante restauração
+    
+    try {
+      const sessionData = await this.firebaseService.loadSessionState();
+      if (sessionData) {
+        console.log('Restaurando estado completo do Firebase...', sessionData);
+        
+        // Restaura estado do wizard
+        if (sessionData.currentState) {
+          this.state.set(sessionData.currentState);
+        }
+        
+        // Restaura histórico do chat
+        if (sessionData.chatHistory && sessionData.chatHistory.length > 0) {
+          // Converte timestamps se necessário (Firestore retorna Timestamp)
+          const chatHistory = sessionData.chatHistory.map(msg => ({
+            ...msg,
+            timestamp: msg.timestamp instanceof Date ? msg.timestamp : (msg.timestamp as any)?.toDate ? (msg.timestamp as any).toDate() : new Date(msg.timestamp)
+          }));
+          this._chatHistory.set(chatHistory);
+        }
+        
+        // Restaura nome do usuário
+        if (sessionData.userName) {
+          this._userName.set(sessionData.userName);
+        }
+        
+        console.log('Sessão restaurada com sucesso!');
+        return true;
+      }
+    } catch (error) {
+      console.error('Erro ao restaurar sessão:', error);
+    } finally {
+      this.isRestoring = false; // Permite salvar novamente após restauração
     }
+    
     return false;
   }
 

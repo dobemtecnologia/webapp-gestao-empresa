@@ -28,6 +28,7 @@ export class WizardFirebaseService {
     // Usamos 'as any' para evitar erros de tipagem estrita no environment
     this.app = initializeApp((environment as any).firebase);
     this.firestore = getFirestore(this.app);
+    console.log('Firebase Service inicializado');
   }
 
   // Gera um ID de sessão único se não existir
@@ -36,6 +37,9 @@ export class WizardFirebaseService {
     if (!sessionId) {
       sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
       localStorage.setItem('wizard_session_id', sessionId);
+      console.log('Novo Session ID criado:', sessionId);
+    } else {
+      console.log('Session ID existente recuperado:', sessionId);
     }
     return sessionId;
   }
@@ -59,30 +63,36 @@ export class WizardFirebaseService {
     };
 
     try {
-      // setDoc com merge: true atualiza campos existentes ou cria se não existir
+      console.log('Tentando salvar sessão no Firebase...', sessionId);
       await setDoc(docRef, dataToSave, { merge: true });
+      console.log('Sessão salva com sucesso no Firebase!');
     } catch (error) {
-      console.error('Erro ao salvar sessão no Firebase:', error);
+      console.error('Erro CRÍTICO ao salvar sessão no Firebase:', error);
     }
   }
 
   // Recupera o estado
   async loadSessionState(): Promise<WizardSessionData | null> {
     const sessionId = localStorage.getItem('wizard_session_id');
-    if (!sessionId) return null;
+    if (!sessionId) {
+      console.log('Nenhuma sessão local encontrada para restaurar.');
+      return null;
+    }
 
     const docRef = doc(this.firestore, this.COLLECTION_NAME, sessionId);
     
     try {
+      console.log('Tentando restaurar sessão do Firebase...', sessionId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data() as any;
-        // Converte timestamp do Firestore de volta para Date se necessário
-        // (O Firestore retorna Timestamp, que tem toDate())
+        console.log('Sessão restaurada com sucesso!', data);
         return data as WizardSessionData;
+      } else {
+        console.log('Documento não encontrado no Firebase para esta sessão.');
       }
     } catch (error) {
-      console.error('Erro ao carregar sessão do Firebase:', error);
+      console.error('Erro CRÍTICO ao carregar sessão do Firebase:', error);
     }
     
     return null;
@@ -91,5 +101,6 @@ export class WizardFirebaseService {
   // Limpa a sessão local (para começar do zero)
   clearLocalSession() {
     localStorage.removeItem('wizard_session_id');
+    console.log('Sessão local limpa.');
   }
 }
