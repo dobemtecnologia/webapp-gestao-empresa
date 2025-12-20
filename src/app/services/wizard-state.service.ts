@@ -1,7 +1,8 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, effect, inject } from '@angular/core';
 import { WizardState } from '../models/wizard-state.model';
 import { SetorDTO } from '../models/setor.model';
 import { Assistente } from '../models/assistente.model';
+import { WizardFirebaseService } from './wizard-firebase.service';
 
 export interface ChatMessage {
   sender: 'eva' | 'user';
@@ -15,6 +16,8 @@ export interface ChatMessage {
   providedIn: 'root'
 })
 export class WizardStateService {
+  private firebaseService = inject(WizardFirebaseService);
+
   // Estado do wizard usando Signals
   private state = signal<WizardState>({
     currentStep: 0, // Passo 0 para pedir o nome
@@ -32,6 +35,20 @@ export class WizardStateService {
   // Novos Signals para o Chat
   private _chatHistory = signal<ChatMessage[]>([]);
   private _userName = signal<string>('');
+
+  constructor() {
+    // Efeito para salvar no Firebase sempre que o estado mudar
+    effect(() => {
+      const currentState = this.state();
+      const currentHistory = this._chatHistory();
+      const currentName = this._userName();
+
+      // Debounce simples ou verificação para não salvar o estado inicial vazio
+      if (currentHistory.length > 0 || currentName) {
+        this.firebaseService.saveSessionState(currentState, currentHistory, { name: currentName });
+      }
+    });
+  }
 
   // Getters computados
   readonly chatHistory = computed(() => this._chatHistory());
@@ -85,6 +102,18 @@ export class WizardStateService {
     return Array.from(agentesMap.values());
   });
 
+  // Método para restaurar sessão
+  async restoreSession() {
+    const sessionData = await this.firebaseService.loadSessionState();
+    if (sessionData) {
+      if (sessionData.currentState) this.state.set(sessionData.currentState);
+      if (sessionData.chatHistory) this._chatHistory.set(sessionData.chatHistory);
+      if (sessionData.userName) this._userName.set(sessionData.userName);
+      return true;
+    }
+    return false;
+  }
+
   // Ações para o Chat
   addMessage(message: Omit<ChatMessage, 'timestamp'>) {
     this._chatHistory.update(history => [
@@ -103,7 +132,7 @@ export class WizardStateService {
   }
 
   nextStep() {
-    this.state.update(s => ({ ...s, currentStep: Math.min(8, s.currentStep + 1) })); // Aumentado para 8 por conta do passo inicial
+    this.state.update(s => ({ ...s, currentStep: Math.min(9, s.currentStep + 1) })); // Ajustado para 9 (passo final)
   }
 
   previousStep() {
@@ -225,6 +254,7 @@ export class WizardStateService {
   }
 
   reset() {
+    this.firebaseService.clearLocalSession(); // Limpa sessão do Firebase
     this._chatHistory.set([]);
     this._userName.set('');
     this.state.set({

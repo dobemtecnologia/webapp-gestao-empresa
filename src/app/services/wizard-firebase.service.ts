@@ -1,0 +1,95 @@
+import { Injectable } from '@angular/core';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getFirestore, Firestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { environment } from '../../environments/environment';
+import { WizardState } from '../models/wizard-state.model';
+import { ChatMessage } from './wizard-state.service';
+
+export interface WizardSessionData {
+  sessionId: string;
+  lastUpdated: Date;
+  currentState: WizardState;
+  chatHistory: ChatMessage[];
+  userName?: string;
+  email?: string;
+  phone?: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class WizardFirebaseService {
+  private app: FirebaseApp;
+  private firestore: Firestore;
+  private readonly COLLECTION_NAME = 'wizard_sessions';
+
+  constructor() {
+    // Inicialização direta do Firebase usando a configuração do environment
+    // Usamos 'as any' para evitar erros de tipagem estrita no environment
+    this.app = initializeApp((environment as any).firebase);
+    this.firestore = getFirestore(this.app);
+  }
+
+  // Gera um ID de sessão único se não existir
+  getOrCreateSessionId(): string {
+    let sessionId = localStorage.getItem('wizard_session_id');
+    if (!sessionId) {
+      sessionId = 'sess_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+      localStorage.setItem('wizard_session_id', sessionId);
+    }
+    return sessionId;
+  }
+
+  // Salva o estado completo no Firestore
+  async saveSessionState(
+    state: WizardState, 
+    chatHistory: ChatMessage[], 
+    userData?: { name?: string, email?: string, phone?: string }
+  ) {
+    const sessionId = this.getOrCreateSessionId();
+    const docRef = doc(this.firestore, this.COLLECTION_NAME, sessionId);
+
+    // Removemos funções ou referências circulares antes de salvar
+    const dataToSave: WizardSessionData = {
+      sessionId,
+      lastUpdated: new Date(),
+      currentState: JSON.parse(JSON.stringify(state)),
+      chatHistory: JSON.parse(JSON.stringify(chatHistory)),
+      ...userData
+    };
+
+    try {
+      // setDoc com merge: true atualiza campos existentes ou cria se não existir
+      await setDoc(docRef, dataToSave, { merge: true });
+    } catch (error) {
+      console.error('Erro ao salvar sessão no Firebase:', error);
+    }
+  }
+
+  // Recupera o estado
+  async loadSessionState(): Promise<WizardSessionData | null> {
+    const sessionId = localStorage.getItem('wizard_session_id');
+    if (!sessionId) return null;
+
+    const docRef = doc(this.firestore, this.COLLECTION_NAME, sessionId);
+    
+    try {
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as any;
+        // Converte timestamp do Firestore de volta para Date se necessário
+        // (O Firestore retorna Timestamp, que tem toDate())
+        return data as WizardSessionData;
+      }
+    } catch (error) {
+      console.error('Erro ao carregar sessão do Firebase:', error);
+    }
+    
+    return null;
+  }
+
+  // Limpa a sessão local (para começar do zero)
+  clearLocalSession() {
+    localStorage.removeItem('wizard_session_id');
+  }
+}

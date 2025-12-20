@@ -9,13 +9,21 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
 
+// Firebase Imports (Comentado temporariamente para fixar build)
+// import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
+// import { provideFirestore, getFirestore } from '@angular/fire/firestore';
+// import { environment } from '../environments/environment';
+
 @NgModule({
   declarations: [AppComponent],
   imports: [
     BrowserModule,
     HttpClientModule,
     IonicModule.forRoot(),
-    AppRoutingModule
+    AppRoutingModule,
+    // Inicialização do Firebase (Comentado)
+    // provideFirebaseApp(() => initializeApp((environment as any).firebase)),
+    // provideFirestore(() => getFirestore())
   ],
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
