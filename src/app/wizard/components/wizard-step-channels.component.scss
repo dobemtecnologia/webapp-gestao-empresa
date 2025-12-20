@@ -14,17 +14,63 @@
 }
 
 .assistant-info {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+  
   h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 700;
     color: var(--ion-color-dark);
   }
 
+  .assistant-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.5rem 0;
+    font-size: 0.875rem;
+    
+    .quantity-badge {
+      color: var(--ion-color-medium);
+      font-weight: 500;
+    }
+  }
+  
+  .agentes-list {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    
+    ion-chip {
+      --background: var(--ion-color-secondary-tint);
+      --color: var(--ion-color-secondary-shade);
+      font-size: 0.75rem;
+      
+      ion-icon {
+        margin-right: 0.25rem;
+      }
+    }
+  }
+}
+
+.channels-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  margin: 0 0 0.75rem 0;
+  grid-column: 1 / -1;
+}
+
+.no-data {
+  text-align: center;
+  padding: 3rem;
+  color: var(--ion-color-medium);
+  
   p {
-    margin: 0.25rem 0 0 0;
-    font-size: 0.85rem;
-    color: var(--ion-color-medium);
+    margin: 0;
   }
 }
 

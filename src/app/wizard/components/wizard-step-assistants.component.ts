@@ -22,6 +22,54 @@ export class WizardStepAssistantsComponent implements OnInit {
   ngOnInit() {
     // Não precisa mais carregar da API, usa os assistentes dos setores selecionados
     this.inicializarAssistantes();
+    // Se os assistentes vierem sem nome completo, busca os detalhes
+    this.enriquecerAssistentesComDetalhes();
+  }
+
+  private enriquecerAssistentesComDetalhes() {
+    const setores = this.selectedSectors();
+    const assistentesParaBuscar = new Set<number>();
+    
+    // Identifica assistentes que precisam ter seus detalhes buscados
+    setores.forEach(setor => {
+      if (setor.assistentes && Array.isArray(setor.assistentes)) {
+        setor.assistentes.forEach(assistente => {
+          // Se o assistente não tem nome ou nome está vazio, precisa buscar detalhes
+          if (!assistente.nome || assistente.nome.trim() === '' || assistente.nome === 'Assistente Personalizado' || assistente.nome === 'Assistente especializado') {
+            assistentesParaBuscar.add(assistente.id);
+          }
+        });
+      }
+    });
+
+    // Busca detalhes completos dos assistentes que precisam
+    if (assistentesParaBuscar.size > 0) {
+      this.planoService.getAssistentes('id,asc').subscribe({
+        next: (assistentesCompletos) => {
+          // Atualiza os assistentes nos setores com os nomes corretos
+          setores.forEach(setor => {
+            if (setor.assistentes && Array.isArray(setor.assistentes)) {
+              setor.assistentes.forEach(assistente => {
+                if (assistentesParaBuscar.has(assistente.id)) {
+                  const assistenteCompleto = assistentesCompletos.find(a => a.id === assistente.id);
+                  if (assistenteCompleto && assistenteCompleto.nome) {
+                    assistente.nome = assistenteCompleto.nome;
+                    // Atualiza também outros campos se necessário
+                    if (assistenteCompleto.descricao && !assistente.descricao) {
+                      assistente.descricao = assistenteCompleto.descricao;
+                    }
+                  }
+                }
+              });
+            }
+          });
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Erro ao buscar detalhes dos assistentes:', error);
+        }
+      });
+    }
   }
 
   inicializarAssistantes() {

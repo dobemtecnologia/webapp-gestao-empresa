@@ -17,7 +17,9 @@
               <ion-item class="assistant-item">
                 <ion-label>
                   <h3>{{ assistente.nome }}</h3>
-                  <p>{{ assistente.descricao || 'Assistente especializado' }}</p>
+                  @if (assistente.descricao) {
+                    <p>{{ assistente.descricao }}</p>
+                  }
                 </ion-label>
                 <div class="quantity-controls" slot="end">
                   <ion-button 

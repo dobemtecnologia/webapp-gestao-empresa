@@ -2,14 +2,32 @@
   @if (carregandoCanals) {
     <ion-spinner></ion-spinner>
   } @else {
-    @for (assistant of assistants(); track assistant.id + assistant.sector) {
-      @if (assistant.quantity > 0) {
+    @if (!hasActiveAssistants()) {
+      <div class="no-data">
+        <p>Nenhum assistente selecionado. Volte ao passo anterior para selecionar assistentes.</p>
+      </div>
+    } @else {
+      @for (assistant of getActiveAssistants(); track assistant.id + assistant.sector) {
         <div class="assistant-row">
           <div class="assistant-info">
-            <h3>{{ assistant.nome }}</h3>
-            <p>{{ assistant.sector }} • {{ assistant.quantity }} assistente(s)</p>
+            <h3>{{ getAssistantName(assistant.id, assistant.sector) }}</h3>
+            <p class="assistant-meta">
+              <ion-chip size="small" color="primary">
+                <ion-label>{{ assistant.sector }}</ion-label>
+              </ion-chip>
+              <span class="quantity-badge">Quantidade: {{ assistant.quantity }}</span>
+            </p>
+            @if (getAgentesForAssistant(assistant.id, assistant.sector).length > 0) {
+              <div class="agentes-list">
+                <ion-chip color="secondary" size="small">
+                  <ion-icon name="construct-outline"></ion-icon>
+                  <ion-label>Agentes: {{ getAgentesNamesString(assistant.id, assistant.sector) }}</ion-label>
+                </ion-chip>
+              </div>
+            }
           </div>
           <div class="assistant-channels-grid">
+            <h4 class="channels-title">Selecione os canais para este assistente:</h4>
             @for (canal of canals; track canal.id) {
               <div class="channel-toggle" (click)="toggleAssistantChannel(assistant.id, canal.id)">
                 <ion-icon [name]="getChannelIcon(canal.nome)" class="channel-icon"></ion-icon>
