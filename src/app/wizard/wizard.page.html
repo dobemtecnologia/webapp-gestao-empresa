@@ -53,13 +53,14 @@
     <!-- Passo 0: Nome -->
     @if (currentStep() === 0) {
       <div class="step-input name-input">
-        <ion-item lines="none" class="custom-input">
+        <ion-item lines="none" class="custom-input name-input-item">
           <ion-input 
             placeholder="Digite seu nome..." 
             [(ngModel)]="tempName"
-            (keyup.enter)="confirmName()">
+            (keyup.enter)="confirmName()"
+            autofocus>
           </ion-input>
-          <ion-button slot="end" fill="clear" (click)="confirmName()" [disabled]="!tempName">
+          <ion-button slot="end" fill="clear" (click)="confirmName()" [disabled]="!tempName" class="send-name-btn">
             <ion-icon name="send"></ion-icon>
           </ion-button>
         </ion-item>
