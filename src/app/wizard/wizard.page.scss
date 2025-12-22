@@ -12,6 +12,17 @@
     height: 100vh;
     height: 100dvh; // Dynamic viewport height para mobile
   }
+  
+  // Garantir que o footer não seja cortado
+  ion-footer {
+    flex-shrink: 0; // Footer nunca encolhe
+    min-height: fit-content;
+  }
+  
+  ion-content {
+    flex: 1 1 auto; // Content pode crescer/encolher
+    overflow-y: auto;
+  }
 }
 
 // Header Customizado
@@ -103,10 +114,12 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  // Padding bottom para não sobrepor o footer
+  padding-bottom: 1rem;
   
   // Garantir que o conteúdo não seja cortado
   @media (max-width: 767px) {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
 
@@ -230,14 +243,46 @@
 }
 
 // Área de Input (Footer)
+ion-footer.chat-input-area {
+  // Garantir que o footer não seja cortado
+  position: relative;
+  z-index: 10;
+  min-height: fit-content;
+  box-sizing: border-box;
+  // Remover qualquer padding/margin padrão do Ionic
+  --padding-start: 0;
+  --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
+}
+
 .chat-input-area {
   background: #1c1c1e;
   border-top: 1px solid #333;
   padding: 1rem;
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  // Padding bottom maior para garantir que o botão não seja cortado
+  // Usa o maior valor entre: 1.5rem, safe-area-inset-bottom + 0.5rem, ou 2rem
+  padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.5rem), 2rem);
   position: relative;
   z-index: 10;
   min-height: fit-content;
+  box-sizing: border-box;
+  width: 100%;
+  
+  // Mobile: Padding ainda maior para garantir visibilidade
+  @media (max-width: 767px) {
+    padding: 1rem;
+    padding-bottom: max(2rem, calc(env(safe-area-inset-bottom) + 1rem), 2.5rem);
+  }
+  
+  // iOS: Padding extra para safe area
+  @supports (padding: max(0px)) {
+    padding-bottom: max(2rem, calc(env(safe-area-inset-bottom) + 1rem));
+    
+    @media (max-width: 767px) {
+      padding-bottom: max(2.5rem, calc(env(safe-area-inset-bottom) + 1.5rem));
+    }
+  }
   
   &.hidden {
     display: none;
@@ -266,6 +311,12 @@
   display: block;
   visibility: visible;
   opacity: 1;
+  box-sizing: border-box;
+  
+  // Garantir que o último botão não seja cortado
+  &:has(.action-btn:last-child) {
+    padding-bottom: 0;
+  }
   
   // Garantir que o input de nome sempre seja visível
   &.name-input {
@@ -277,6 +328,13 @@
     opacity: 1 !important;
     position: relative;
     z-index: 100;
+  }
+  
+  // Component input com scrollable precisa de espaço extra
+  &.component-input {
+    .action-btn:last-child {
+      margin-bottom: 0;
+    }
   }
   
   // Item específico do input de nome
@@ -369,15 +427,19 @@
 
 .action-btn {
   margin-top: 1rem;
+  margin-bottom: 0; // Remover margin-bottom padrão
   --border-radius: 12px;
   min-height: 48px; // Tamanho mínimo para touch
   font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
   
   // Mobile: Botões menores mas ainda tocáveis
   @media (max-width: 767px) {
-    min-height: 44px;
+    min-height: 48px; // Mantém 48px para touch adequado
     font-size: 0.95rem;
     margin-top: 0.75rem;
+    margin-bottom: 0;
     --border-radius: 10px;
   }
   
@@ -560,29 +622,30 @@
 // Altura específica para evitar cortes em diferentes dispositivos
 @media (max-height: 600px) {
   .scrollable-component {
-    max-height: 30vh;
-    min-height: 150px;
+    max-height: calc(25vh - 80px);
+    min-height: 120px;
   }
   
   .sectors-grid-mini {
-    max-height: 30vh;
-    min-height: 120px;
+    max-height: calc(25vh - 80px);
+    min-height: 100px;
   }
 }
 
 // Landscape mobile
 @media (max-width: 767px) and (orientation: landscape) {
   .scrollable-component {
-    max-height: 25vh;
-    min-height: 120px;
+    max-height: calc(20vh - 80px);
+    min-height: 100px;
   }
   
   .sectors-grid-mini {
-    max-height: 25vh;
-    min-height: 100px;
+    max-height: calc(20vh - 80px);
+    min-height: 80px;
   }
   
   .chat-input-area {
     padding: 0.75rem;
+    padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.5rem));
   }
 }

@@ -107,7 +107,7 @@ export class WizardPage implements OnInit, OnDestroy {
       this.wizardState.addMessage({
         sender: 'eva',
         type: 'text',
-        content: 'Olá! Sou a <strong>Eva</strong>, sua assistente virtual. 👋<br>Estou aqui para te ajudar a montar o plano perfeito para sua empresa.'
+        content: 'Olá! Sou a <strong>Eva</strong>, sua assistente operacional. 👋<br>Estou aqui para te ajudar a montar o plano perfeito para sua empresa.'
       });
       
       setTimeout(() => {
