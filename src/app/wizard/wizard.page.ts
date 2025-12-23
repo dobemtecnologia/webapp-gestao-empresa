@@ -137,10 +137,15 @@ export class WizardPage implements OnInit, OnDestroy {
     this.scrollToBottom();
     
     // Pergunta pelo CNPJ ao invés de ir direto para setores
+    // Habilita o campo CNPJ imediatamente, sem esperar a mensagem da Eva
+    this.wizardState.setCurrentStep(0.5); // Passo intermediário: CNPJ
+    this.isConsultingCNPJ = false; // Garante que o campo está habilitado
+    this.isTyping = false; // Garante que não está bloqueado
+    
+    // Mostra a mensagem da Eva em paralelo, sem bloquear o campo
     setTimeout(() => {
-      this.wizardState.setCurrentStep(0.5); // Passo intermediário: CNPJ
       this.showEvaResponse(`Prazer, <strong>${this.wizardState.userName()}</strong>! 😉<br>Para eu conhecer melhor sua empresa e já preparar as melhores configurações, qual é o <strong>CNPJ</strong> da sua empresa?`);
-    }, 800);
+    }, 300);
   }
 
   formatarCNPJ(cnpj: string): string {
@@ -174,8 +179,9 @@ export class WizardPage implements OnInit, OnDestroy {
       return;
     }
 
+    // Desabilita o campo apenas durante a consulta
     this.isConsultingCNPJ = true;
-    this.isTyping = true;
+    // Não bloqueia o chat com isTyping aqui, apenas durante a consulta do CNPJ
 
     try {
       const cnpjData: CNPJResponse = await firstValueFrom(this.cnpjService.consultarCNPJ(cnpjLimpo));
@@ -187,11 +193,12 @@ export class WizardPage implements OnInit, OnDestroy {
         content: cnpjData.cnpj 
       });
 
-      // Salva dados da empresa
+      // Salva dados da empresa (incluindo situacaoCadastral para uso posterior)
       this.wizardState.setEmpresaData({
         cnpj: cnpjData.cnpj,
         razaoSocial: cnpjData.razaoSocial,
-        nomeFantasia: cnpjData.nomeFantasia
+        nomeFantasia: cnpjData.nomeFantasia,
+        situacaoCadastral: cnpjData.situacaoCadastral
       });
 
       // Busca o setor completo pelo ID sugerido (com assistentes carregados)
@@ -1006,6 +1013,18 @@ export class WizardPage implements OnInit, OnDestroy {
       orcamento.nomeProspect = leadData.nome;
       orcamento.emailProspect = leadData.email;
       if (leadData.telefone) orcamento.telefoneProspect = leadData.telefone;
+    }
+
+    // Adiciona empresaDadosCnpj se disponível
+    const empresaData = this.wizardState.empresaData();
+    if (empresaData) {
+      orcamento.empresaDadosCnpj = {
+        cnpj: empresaData.cnpj,
+        razaoSocial: empresaData.razaoSocial,
+        nomeFantasia: empresaData.nomeFantasia,
+        situacaoCadastral: empresaData.situacaoCadastral || 'ATIVA',
+        emailFinanceiro: leadData?.email || '' // Usa o email do prospect como email financeiro
+      };
     }
 
     return orcamento;

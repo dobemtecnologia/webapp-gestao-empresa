@@ -9,11 +9,13 @@ import { OrcamentoDTO } from '../models/orcamento.model';
 })
 export class OrcamentoService {
   private apiUrl = `${environment.apiUrl}/api/orcamentos`;
+  private apiUrlCustom = `${environment.apiUrl}/api/custom/orcamentos/com-itens`;
 
   constructor(private http: HttpClient) { }
 
   create(orcamento: OrcamentoDTO): Observable<OrcamentoDTO> {
-    return this.http.post<OrcamentoDTO>(this.apiUrl, orcamento);
+    // Usa o novo endpoint customizado
+    return this.http.post<OrcamentoDTO>(this.apiUrlCustom, orcamento);
   }
 
   getById(id: number): Observable<OrcamentoDTO> {

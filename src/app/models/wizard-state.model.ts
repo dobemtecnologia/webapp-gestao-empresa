@@ -15,6 +15,7 @@ export interface WizardState {
     cnpj: string;
     razaoSocial: string;
     nomeFantasia?: string;
+    situacaoCadastral?: string;
   };
 }
 

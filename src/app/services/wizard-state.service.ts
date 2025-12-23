@@ -308,7 +308,7 @@ export class WizardStateService {
   }
 
   // Métodos para dados da empresa
-  setEmpresaData(data: { cnpj: string; razaoSocial: string; nomeFantasia?: string }) {
+  setEmpresaData(data: { cnpj: string; razaoSocial: string; nomeFantasia?: string; situacaoCadastral?: string }) {
     this.state.update(s => ({ ...s, empresaData: data }));
   }
 

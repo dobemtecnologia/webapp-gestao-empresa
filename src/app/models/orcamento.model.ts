@@ -1,3 +1,11 @@
+export interface EmpresaDadosCnpj {
+  cnpj: string;
+  razaoSocial: string;
+  nomeFantasia?: string;
+  situacaoCadastral?: string;
+  emailFinanceiro?: string;
+}
+
 export interface OrcamentoDTO {
   id?: number;
   nomeProspect?: string;
@@ -19,6 +27,7 @@ export interface OrcamentoDTO {
   criadoEm?: string;
   atualizadoEm?: string;
   empresa?: { id: number } | null;
+  empresaDadosCnpj?: EmpresaDadosCnpj;
   vendedor: { id: number };
   infraestrutura: { id: number };
   itens?: ItemOrcamentoDTO[];
