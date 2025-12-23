@@ -10,6 +10,7 @@ import { AuthService } from '../services/auth.service';
 import { TokenStorageService } from '../services/token-storage.service';
 import { CNPJResponse } from '../models/cnpj-response.model';
 import { SetorDTO } from '../models/setor.model';
+import { Assistente } from '../models/assistente.model';
 import { PlanoBlueprint } from '../models/plano-blueprint.model';
 import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model';
 import { OrcamentoDTO, ItemOrcamentoDTO, LeadData } from '../models/orcamento.model';
@@ -193,15 +194,141 @@ export class WizardPage implements OnInit, OnDestroy {
         nomeFantasia: cnpjData.nomeFantasia
       });
 
-      // Busca o setor completo pelo ID sugerido
+      // Busca o setor completo pelo ID sugerido (com assistentes carregados)
       if (cnpjData.setorSugerido && cnpjData.setorSugerido.id) {
         try {
-          const setorCompleto: SetorDTO = await firstValueFrom(
-            this.setorService.getSetorById(cnpjData.setorSugerido.id)
-          );
+          // Primeiro tenta buscar o setor pelo ID com eagerload para garantir assistentes
+          let setorCompleto: SetorDTO;
           
-          // Seleciona o setor automaticamente
+          try {
+            setorCompleto = await firstValueFrom(
+              this.setorService.getSetorById(cnpjData.setorSugerido.id, true)
+            );
+            console.log('Setor buscado pelo ID:', setorCompleto);
+          } catch (error) {
+            console.warn('Erro ao buscar setor pelo ID, tentando lista completa...', error);
+            // Fallback: busca todos os setores
+            const todosSetores: SetorDTO[] = await firstValueFrom(
+              this.setorService.getAllSetors('id,asc', 0, 100, true)
+            );
+            const setorEncontrado = todosSetores.find(s => s.id === cnpjData.setorSugerido!.id);
+            if (!setorEncontrado) {
+              throw new Error(`Setor com ID ${cnpjData.setorSugerido.id} não encontrado`);
+            }
+            setorCompleto = setorEncontrado;
+          }
+          
+          // Se ainda não tiver assistentes, tenta buscar da lista completa
+          if (!setorCompleto.assistentes || setorCompleto.assistentes.length === 0) {
+            console.log('Setor sem assistentes, buscando na lista completa com eagerload...');
+            const todosSetores: SetorDTO[] = await firstValueFrom(
+              this.setorService.getAllSetors('id,asc', 0, 100, true)
+            );
+            const setorDaLista = todosSetores.find(s => s.id === cnpjData.setorSugerido!.id);
+            if (setorDaLista && setorDaLista.assistentes && setorDaLista.assistentes.length > 0) {
+              setorCompleto = setorDaLista;
+              console.log('✅ Setor encontrado na lista com assistentes!');
+            }
+          }
+          
+          // Verifica se o setor tem assistentes carregados
+          console.log('Setor final:', {
+            id: setorCompleto.id,
+            nome: setorCompleto.nome,
+            temAssistentes: !!setorCompleto.assistentes,
+            quantidadeAssistentes: setorCompleto.assistentes?.length || 0,
+            assistentes: setorCompleto.assistentes
+          });
+          
+          if (!setorCompleto.assistentes || setorCompleto.assistentes.length === 0) {
+            console.warn(`⚠️ Setor ${setorCompleto.nome} (ID: ${setorCompleto.id}) não possui assistentes vinculados na resposta da API.`);
+            console.warn('Isso pode indicar que: 1) O setor realmente não tem assistentes no banco, ou 2) A API não está retornando os relacionamentos mesmo com eagerload.');
+          } else {
+            console.log(`✅ Setor ${setorCompleto.nome} encontrado com ${setorCompleto.assistentes.length} assistentes carregados.`);
+          }
+          
+          // Se o setor não tiver assistentes carregados, busca separadamente
+          if (!setorCompleto.assistentes || setorCompleto.assistentes.length === 0) {
+            console.log('🔍 Setor sem assistentes na resposta. Buscando assistentes separadamente...');
+            
+            try {
+              // Busca todos os assistentes com eagerload para ter os relacionamentos
+              const todosAssistentes: any[] = await firstValueFrom(
+                this.planoService.getAssistentes('id,asc')
+              );
+              
+              console.log(`📋 Total de assistentes encontrados na API: ${todosAssistentes.length}`);
+              
+              // Inspeciona a estrutura de um assistente para entender o relacionamento
+              if (todosAssistentes.length > 0) {
+                console.log('🔬 Estrutura do primeiro assistente:', todosAssistentes[0]);
+              }
+              
+              // Filtra assistentes que pertencem ao setor
+              // O AssistenteDTO tem um campo 'setors' (array de SetorDTO)
+              const assistentesDoSetor = todosAssistentes.filter((assistente: any) => {
+                // Verifica se o array 'setors' do assistente contém o setor selecionado
+                const temRelacao = assistente.setors?.some((s: any) => {
+                  const setorId = typeof s === 'object' ? s.id : s;
+                  return setorId === setorCompleto.id;
+                }) || false;
+                
+                if (temRelacao) {
+                  console.log(`✅ Assistente "${assistente.nome}" (ID: ${assistente.id}) pertence ao setor ${setorCompleto.nome}`);
+                }
+                
+                return temRelacao;
+              });
+              
+              console.log(`📊 Assistentes filtrados para o setor ${setorCompleto.nome}: ${assistentesDoSetor.length}`);
+              
+              // Atualiza o setor com os assistentes encontrados
+              if (assistentesDoSetor.length > 0) {
+                setorCompleto.assistentes = assistentesDoSetor.map(a => ({
+                  id: a.id,
+                  nome: a.nome,
+                  descricao: a.descricao,
+                  ativo: a.ativo !== false,
+                  promptBase: a.promptBase,
+                  modeloIA: a.modeloIA,
+                  status: a.status
+                }));
+                console.log(`✅ ${assistentesDoSetor.length} assistentes vinculados ao setor ${setorCompleto.nome}`);
+              } else {
+                console.warn(`⚠️ Nenhum assistente encontrado vinculado ao setor ${setorCompleto.nome} (ID: ${setorCompleto.id})`);
+                console.warn('💡 Possíveis causas:');
+                console.warn('   1. O setor realmente não tem assistentes no banco');
+                console.warn('   2. O relacionamento usa um campo diferente');
+                console.warn('   3. Os assistentes precisam ser buscados de outra forma');
+              }
+            } catch (error) {
+              console.error('❌ Erro ao buscar assistentes:', error);
+            }
+          }
+          
+          // Seleciona o setor automaticamente (com assistentes já carregados)
           this.wizardState.toggleSector(setorCompleto);
+          
+          // Aguarda um pouco para garantir que o signal seja atualizado
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Verifica novamente após atualizar o estado
+          const setoresAposSelecao = this.wizardState.selectedSectors();
+          const assistentesAposSelecao = this.wizardState.availableAssistants();
+          
+          console.log('=== VERIFICAÇÃO APÓS SELEÇÃO ===');
+          console.log('Setores selecionados no estado:', setoresAposSelecao);
+          console.log('Quantidade de setores:', setoresAposSelecao.length);
+          setoresAposSelecao.forEach(setor => {
+            console.log(`  - Setor: ${setor.nome} (ID: ${setor.id})`);
+            console.log(`    Tem assistentes?: ${!!setor.assistentes}`);
+            console.log(`    Quantidade assistentes: ${setor.assistentes?.length || 0}`);
+            if (setor.assistentes && setor.assistentes.length > 0) {
+              console.log(`    IDs dos assistentes:`, setor.assistentes.map(a => a.id));
+            }
+          });
+          console.log('Assistentes disponíveis (computed):', assistentesAposSelecao);
+          console.log('Quantidade assistentes disponíveis:', assistentesAposSelecao.length);
           
           this.tempCNPJ = '';
           this.scrollToBottom();
@@ -212,21 +339,38 @@ export class WizardPage implements OnInit, OnDestroy {
             const nomeEmpresa = cnpjData.nomeFantasia || cnpjData.razaoSocial;
             const nomeSetor = cnpjData.setorSugerido.nome;
             
-            this.wizardState.addMessage({
-              sender: 'eva',
-              type: 'text',
-              content: `Perfeito, <strong>${this.wizardState.userName()}</strong>! 💼<br>Localizei a empresa <strong>${nomeEmpresa}</strong>. Como vocês atuam no ramo de <strong>${nomeSetor}</strong>, já preparei as melhores configurações para vocês. Vamos prosseguir?`
-            });
+            // Verifica novamente antes de mostrar a mensagem
+            const assistentesFinais = this.wizardState.availableAssistants();
+            
+            if (assistentesFinais.length > 0) {
+              this.wizardState.addMessage({
+                sender: 'eva',
+                type: 'text',
+                content: `Perfeito, <strong>${this.wizardState.userName()}</strong>! 💼<br>Localizei a empresa <strong>${nomeEmpresa}</strong>. Como vocês atuam no ramo de <strong>${nomeSetor}</strong>, já preparei as melhores configurações para vocês. Vamos prosseguir?`
+              });
 
-            // Avança automaticamente para o passo de Assistentes após delay
-            setTimeout(() => {
-              this.wizardState.setCurrentStep(2); // Passo 2: Assistentes
-              this.scrollToBottom();
+              // Avança automaticamente para o passo de Assistentes após delay
+              setTimeout(() => {
+                this.wizardState.setCurrentStep(2); // Passo 2: Assistentes
+                this.scrollToBottom();
+                
+                setTimeout(() => {
+                  this.showEvaResponse('Ótima escolha! 🚀<br>Analisei seus setores e encontrei estes especialistas. <strong>Quantos assistentes</strong> de cada tipo você vai precisar?');
+                }, 500);
+              }, 2000);
+            } else {
+              // Se não houver assistentes, volta para seleção manual de setores
+              this.wizardState.addMessage({
+                sender: 'eva',
+                type: 'text',
+                content: `Desculpe, <strong>${this.wizardState.userName()}</strong> 😔<br>Localizei a empresa <strong>${nomeEmpresa}</strong> e identifiquei o setor <strong>${nomeSetor}</strong>, mas não encontrei assistentes configurados para esse setor. Você pode selecionar outro setor manualmente?`
+              });
               
               setTimeout(() => {
-                this.showEvaResponse('Ótima escolha! 🚀<br>Analisei seus setores e encontrei estes especialistas. <strong>Quantos assistentes</strong> de cada tipo você vai precisar?');
-              }, 500);
-            }, 2000);
+                this.wizardState.setCurrentStep(1);
+                this.scrollToBottom();
+              }, 2000);
+            }
           }, 1000);
           
         } catch (setorError) {
@@ -353,11 +497,11 @@ export class WizardPage implements OnInit, OnDestroy {
     }
   }
 
-  private triggerNextEvaQuestion(nextStep: number) {
+  private async triggerNextEvaQuestion(nextStep: number) {
     this.isTyping = true;
     this.scrollToBottom();
 
-    setTimeout(() => {
+    setTimeout(async () => {
       this.isTyping = false;
       let message = '';
 
@@ -378,7 +522,8 @@ export class WizardPage implements OnInit, OnDestroy {
           message = `Certo, ${this.wizardState.userName()}. Já calculei tudo aqui. 🧮<br>Escolha o <strong>período de contratação</strong> para ver os descontos que consegui para você.`;
           break;
         case 7: // Período -> Resumo
-          message = 'Prontinho! 🎉<br>Aqui está o <strong>resumo completo</strong> da sua operação. O que achou?';
+          // Gera o resumo completo como HTML para exibir no chat
+          message = await this.gerarResumoCompleto();
           break;
       }
 
@@ -387,6 +532,121 @@ export class WizardPage implements OnInit, OnDestroy {
         this.scrollToBottom();
       }
     }, 1500);
+  }
+
+  private async gerarResumoCompleto(): Promise<string> {
+    // Busca dados necessários para o resumo
+    const [periodos, infraestruturas, assistentes, canals] = await Promise.all([
+      firstValueFrom(this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([])))),
+      firstValueFrom(this.planoService.getInfraestruturas('id,asc').pipe(catchError(() => of([])))),
+      firstValueFrom(this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])))),
+      firstValueFrom(this.planoService.getCanals('id,asc').pipe(catchError(() => of([]))))
+    ]);
+
+    const baseMensal = this.wizardState.baseMonthlyValue() ?? 0;
+    const periodoCodigo = this.selectedPeriod();
+    const periodo = periodos.find(p => p.codigo === periodoCodigo && p.ativo);
+
+    // Calcula valores do período
+    let htmlResumo = '<div style="text-align: left; font-size: 0.95rem;">';
+    htmlResumo += '<strong style="font-size: 1.1rem; display: block; margin-bottom: 12px;">📋 Resumo do Plano</strong>';
+    
+    if (periodo && baseMensal > 0) {
+      const meses = periodo.meses || 1;
+      const precoPeriodoBruto = baseMensal * meses;
+      
+      let valorDesconto = 0;
+      if (periodo.tipoDesconto === 'PERCENTUAL') {
+        valorDesconto = precoPeriodoBruto * (periodo.valorDesconto / 100);
+      } else if (periodo.tipoDesconto === 'VALOR_FIXO') {
+        valorDesconto = periodo.valorDesconto;
+      }
+      
+      const precoPeriodoComDesconto = Math.max(precoPeriodoBruto - valorDesconto, 0);
+      const precoMensalComDesconto = precoPeriodoComDesconto / meses;
+      
+      const periodoLabels: { [key: string]: string } = {
+        MENSAL: 'Mensal',
+        TRIMESTRAL: 'Trimestral',
+        SEMESTRAL: 'Semestral',
+        ANUAL: 'Anual',
+      };
+      
+      htmlResumo += `<div style="background: rgba(0, 152, 218, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #0098da;">`;
+      htmlResumo += `<div style="font-weight: 600; color: #0098da; margin-bottom: 4px;">Período: ${periodoLabels[periodoCodigo!] || periodoCodigo} (${meses} meses)</div>`;
+      htmlResumo += `<div style="font-size: 1.3rem; font-weight: bold; color: #0098da; margin: 8px 0;">${this.formatarMoeda(precoMensalComDesconto)} / mês</div>`;
+      htmlResumo += `<div style="font-size: 0.9rem; color: #888;">Total do período: ${this.formatarMoeda(precoPeriodoComDesconto)}</div>`;
+      if (valorDesconto > 0) {
+        htmlResumo += `<div style="font-size: 0.85rem; color: #4caf50; margin-top: 4px;">✨ Desconto de ${periodo.tipoDesconto === 'PERCENTUAL' ? periodo.valorDesconto + '%' : this.formatarMoeda(periodo.valorDesconto)} aplicado!</div>`;
+      }
+      htmlResumo += `</div>`;
+    }
+
+    // Configuração do plano
+    htmlResumo += '<div style="margin-top: 16px;">';
+    htmlResumo += '<strong style="display: block; margin-bottom: 8px; color: #fff;">⚙️ Configuração:</strong>';
+    
+    // Setores
+    const setoresSelecionados = this.selectedSectors();
+    if (setoresSelecionados.length > 0) {
+      htmlResumo += `<div style="margin-bottom: 8px;"><strong>Setores:</strong> ${setoresSelecionados.map(s => s.nome).join(', ')}</div>`;
+    }
+    
+    // Assistentes
+    const assistentesAtivos = this.assistants().filter(a => a.quantity > 0);
+    if (assistentesAtivos.length > 0) {
+      htmlResumo += '<div style="margin-bottom: 8px;"><strong>Assistentes:</strong><br>';
+      assistentesAtivos.forEach(a => {
+        const nome = assistentes.find(ast => ast.id === a.id)?.nome || `Assistente #${a.id}`;
+        htmlResumo += `&nbsp;&nbsp;• ${nome} (${a.quantity}x) - ${a.sector}<br>`;
+      });
+      htmlResumo += '</div>';
+    }
+    
+    // Canais
+    const canaisAtivos = this.channels().filter(c => c.enabled);
+    if (canaisAtivos.length > 0) {
+      htmlResumo += '<div style="margin-bottom: 8px;"><strong>Canais:</strong> ';
+      const nomesCanais = canaisAtivos.map(c => {
+        const nome = canals.find(can => can.id === c.id)?.nome || `Canal #${c.id}`;
+        return nome;
+      });
+      htmlResumo += nomesCanais.join(', ') + '</div>';
+    }
+    
+    // Infraestrutura
+    if (this.infrastructure()) {
+      const infraNome = infraestruturas.find(i => i.id === this.infrastructure())?.nome || `Infraestrutura #${this.infrastructure()}`;
+      htmlResumo += `<div style="margin-bottom: 8px;"><strong>Infraestrutura:</strong> ${infraNome}</div>`;
+    }
+    
+    // Consumo
+    htmlResumo += '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">';
+    htmlResumo += `<div><strong>📊 Consumo estimado:</strong></div>`;
+    htmlResumo += `<div>&nbsp;&nbsp;• Mensagens: ${this.formatarNumero(this.monthlyCredits())} / mês</div>`;
+    htmlResumo += `<div>&nbsp;&nbsp;• Tokens OpenAI: ${this.formatarNumero(this.tokensOpenAi())} / mês</div>`;
+    htmlResumo += '</div>';
+    
+    htmlResumo += '</div>';
+    htmlResumo += '</div>';
+    
+    return 'Prontinho! 🎉<br><br>' + htmlResumo;
+  }
+
+  private formatarMoeda(valor: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(valor);
+  }
+
+  private formatarNumero(valor: number): string {
+    if (valor >= 1000000) {
+      return `${(valor / 1000000).toFixed(1)}M`;
+    } else if (valor >= 1000) {
+      return `${(valor / 1000).toFixed(0)}k`;
+    }
+    return valor.toString();
   }
 
   private showEvaResponse(content: string) {
@@ -422,7 +682,17 @@ export class WizardPage implements OnInit, OnDestroy {
   // --- Lógica de Negócio ---
 
   async finalizarOrcamento() {
+    console.log('🚀 Iniciando finalizarOrcamento...');
+    console.log('📊 Estado atual:', {
+      resultadoSimulacao: !!this.resultadoSimulacao,
+      selectedPeriod: this.selectedPeriod(),
+      tempEmail: this.tempEmail,
+      tempPhone: this.tempPhone,
+      userName: this.wizardState.userName()
+    });
+
     if (!this.resultadoSimulacao || !this.selectedPeriod()) {
+      console.warn('⚠️ Simulação incompleta');
       this.showToast('Simulação incompleta.', 'warning');
       this.isTyping = false; // Restaura UI em caso de erro
       return;
@@ -434,61 +704,89 @@ export class WizardPage implements OnInit, OnDestroy {
       telefone: this.tempPhone
     };
 
+    console.log('📝 LeadData:', leadData);
+
     try {
       this.isLoading = true;
       
       // Busca dados necessários
       const periodoCodigo = this.selectedPeriod();
+      console.log('🔍 Buscando período:', periodoCodigo);
       let periodoData: PeriodoContratacao | null = null;
 
       if (periodoCodigo) {
-        const periodos = await firstValueFrom(this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([]))));
+        const periodos = await firstValueFrom(this.planoService.getPeriodosContratacao('id,asc').pipe(catchError((err) => {
+          console.error('❌ Erro ao buscar períodos:', err);
+          return of([]);
+        })));
         periodoData = periodos?.find(p => p.codigo === periodoCodigo && p.ativo) || null;
+        console.log('📅 Período encontrado:', periodoData);
       }
 
-      const vendedors = await firstValueFrom(this.planoService.getVendedors('id,asc', 0, 100).pipe(catchError(() => of([]))));
+      console.log('👤 Buscando vendedores...');
+      const vendedors = await firstValueFrom(this.planoService.getVendedors('id,asc', 0, 100).pipe(catchError((err) => {
+        console.error('❌ Erro ao buscar vendedores:', err);
+        return of([]);
+      })));
+      console.log('👥 Vendedores encontrados:', vendedors.length);
       const vendedorId = vendedors?.find(v => v.tipo === 'SISTEMA_IA')?.id;
+      console.log('✅ Vendedor ID:', vendedorId);
 
-      if (!vendedorId) throw new Error('Vendedor sistema não encontrado');
+      if (!vendedorId) {
+        console.error('❌ Vendedor sistema não encontrado');
+        throw new Error('Vendedor sistema não encontrado');
+      }
 
+      console.log('🔄 Convertendo para OrcamentoDTO...');
       const orcamentoDTO = this.converterParaOrcamentoDTO(leadData, periodoData, vendedorId);
+      console.log('✅ OrcamentoDTO criado:', JSON.stringify(orcamentoDTO, null, 2));
 
       // Envia para API
+      console.log('📤 Enviando orçamento para API...');
       this.orcamentoService.create(orcamentoDTO)
         .pipe(
           finalize(() => {
             this.isLoading = false;
+            console.log('🏁 Finalize chamado');
             // Mantém isTyping como true por enquanto, pois vamos tratar no subscribe ou no timeout
           })
         )
         .subscribe({
           next: async (orcamento) => {
+            console.log('✅ Resposta da API recebida:', orcamento);
             if (orcamento.codigoHash) {
               // Sucesso direto
+              console.log('✅ Hash presente, sucesso direto!');
               this.handleSuccess(orcamento);
             } else if (orcamento.id) {
               // Fallback: Tenta buscar pelo ID se o hash vier nulo na criação
-              console.warn('Hash nulo na criação. Tentando buscar pelo ID:', orcamento.id);
+              console.warn('⚠️ Hash nulo na criação. Tentando buscar pelo ID:', orcamento.id);
               try {
                 const orcamentoCompleto = await firstValueFrom(this.orcamentoService.getById(orcamento.id!));
+                console.log('📥 Orçamento completo buscado:', orcamentoCompleto);
                 if (orcamentoCompleto && orcamentoCompleto.codigoHash) {
                   this.handleSuccess(orcamentoCompleto);
                 } else {
+                  console.error('❌ Hash não encontrado mesmo após busca');
                   this.handleError(new Error('Hash não gerado mesmo após nova busca.'));
                 }
               } catch (e) {
+                console.error('❌ Erro ao buscar orçamento pelo ID:', e);
                 this.handleError(e);
               }
             } else {
+              console.error('❌ Orçamento criado sem ID nem Hash:', orcamento);
               this.handleError(new Error('Orçamento criado sem ID nem Hash.'));
             }
           },
           error: (err) => {
+            console.error('❌ Erro no subscribe:', err);
             this.handleError(err);
           }
         });
 
     } catch (e) {
+      console.error('❌ Erro no try/catch:', e);
       this.handleError(e);
     }
   }
@@ -511,10 +809,27 @@ export class WizardPage implements OnInit, OnDestroy {
   }
 
   private handleError(err: any) {
-    console.error('Erro na finalização:', err);
+    console.error('❌ Erro na finalização:', err);
+    console.error('Detalhes do erro:', {
+      message: err?.message,
+      error: err?.error,
+      status: err?.status,
+      statusText: err?.statusText,
+      url: err?.url,
+      fullError: err
+    });
     this.isTyping = false; // Garante que destrava
     this.isLoading = false;
-    this.showToast('Erro ao gerar proposta. Tente novamente.', 'danger');
+    
+    // Mensagem de erro mais específica
+    let errorMessage = 'Erro ao gerar proposta. Tente novamente.';
+    if (err?.error?.message) {
+      errorMessage = `Erro: ${err.error.message}`;
+    } else if (err?.message) {
+      errorMessage = `Erro: ${err.message}`;
+    }
+    
+    this.showToast(errorMessage, 'danger');
     this.wizardState.setCurrentStep(7); // Volta para review
   }
 
@@ -531,7 +846,7 @@ export class WizardPage implements OnInit, OnDestroy {
 
   carregarSetores() {
     this.carregandoSetores = true;
-    this.setorService.getAllSetors('id,asc', 0, 100).subscribe({
+    this.setorService.getAllSetors('id,asc', 0, 100, true).subscribe({
       next: (setores) => {
         this.setoresDisponiveis = setores;
         this.carregandoSetores = false;
@@ -682,7 +997,4 @@ export class WizardPage implements OnInit, OnDestroy {
     await toast.present();
   }
 
-  formatarMoeda(valor: number): string {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
-  }
 }

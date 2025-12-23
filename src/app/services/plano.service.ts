@@ -32,8 +32,10 @@ export class PlanoService {
     return this.http.get<Infraestrutura[]>(`${this.baseApiUrl}/infraestruturas`, { params });
   }
 
-  getAssistentes(sort: string = 'id,asc'): Observable<Assistente[]> {
-    const params = new HttpParams().set('sort', sort);
+  getAssistentes(sort: string = 'id,asc', eagerload: boolean = true): Observable<Assistente[]> {
+    let params = new HttpParams()
+      .set('sort', sort)
+      .set('eagerload', eagerload.toString());
     return this.http.get<Assistente[]>(`${this.baseApiUrl}/assistentes`, { params });
   }
 

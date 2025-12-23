@@ -219,15 +219,9 @@
       </div>
     }
 
-    <!-- Passo 7: Resumo (Review) -->
+    <!-- Passo 7: Resumo (Review) - Apenas botão, resumo está no chat -->
     @if (currentStep() === 7) {
-      <div class="step-input component-input final-step">
-         <div class="input-header">
-          <span>Revisão Final</span>
-        </div>
-        <div class="scrollable-component">
-          <app-wizard-step-review></app-wizard-step-review>
-        </div>
+      <div class="step-input final-step">
         <ion-button 
           expand="block" 
           color="success" 
