@@ -78,43 +78,68 @@ export class WizardPage implements OnInit, OnDestroy {
     await this.loginAutomatico();
     
     // Verifica se há hash na query string para edição
-    const hash = this.route.snapshot.queryParams['hash'];
-    if (hash) {
-      console.log('🔍 Hash encontrado na URL. Carregando orçamento para edição...', hash);
-      await this.carregarOrcamentoParaEdicao(hash);
-      return; // Não restaura sessão do Firebase se estiver editando
-    }
+    const hashUrl = this.route.snapshot.queryParams['hash'];
     
-    // Cria ou recupera o Session ID logo no início (garante persistência do navegador)
-    // Isso garante que mesmo novos usuários tenham um ID único associado ao navegador
+    // Cria ou recupera o Session ID logo no início
     const sessionId = this.firebaseService.getOrCreateSessionId();
     console.log('📝 Session ID para esta sessão:', sessionId);
     
-    // Tenta restaurar sessão do Firebase ANTES de resetar
+    // Tenta restaurar sessão do Firebase ANTES de qualquer decisão
     console.log('Verificando sessão existente no Firebase...');
     const restored = await this.wizardState.restoreSession();
     
     if (restored) {
-      // Sessão restaurada com sucesso - apenas rola para o final do chat
-      console.log('✅ Sessão restaurada! Carregando histórico...');
+      console.log('✅ Sessão restaurada!');
+      
+      const hashSessao = this.wizardState.orcamentoHash();
+
+      // CASO 1: Refresh na mesma proposta (Hash URL == Hash Sessão)
+      if (hashUrl && hashSessao === hashUrl) {
+        console.log('🔄 Refresh detectado na mesma proposta. Mantendo histórico e estado.');
+        this.scrollToBottom();
+        
+        if (this.wizardState.userName()) {
+          this.tempName = this.wizardState.userName();
+        }
+        
+        // Garante simulação se necessário
+        if (this.wizardState.currentStep() >= 6 && !this.resultadoSimulacao) {
+          console.log('🔄 Restaurando simulação em background...');
+          this.simularPlano().then(() => console.log('✅ Simulação restaurada.'));
+        }
+        return; // Mantém o estado atual sem recarregar da API
+      }
+
+      // CASO 2: Navegação para outra proposta (Hash URL != Hash Sessão)
+      if (hashUrl && hashSessao !== hashUrl) {
+        console.log('🔀 Hash diferente detectado ou nova edição. Carregando da API...');
+        await this.carregarOrcamentoParaEdicao(hashUrl);
+        return;
+      }
+
+      // CASO 3: Retomada normal de sessão (sem hash na URL ou mesmo contexto)
+      console.log('Carregando histórico da sessão...');
       this.scrollToBottom();
       
-      // Restaura dados temporários se necessário
       if (this.wizardState.userName()) {
         this.tempName = this.wizardState.userName();
       }
       
-      // Se restaurou em um passo avançado, garante que a simulação esteja pronta
       if (this.wizardState.currentStep() >= 6 && !this.resultadoSimulacao) {
         console.log('🔄 Restaurando simulação em background...');
         this.simularPlano().then(() => console.log('✅ Simulação restaurada.'));
       }
 
     } else {
-      // Não há sessão - começa do zero
-      console.log('🆕 Nenhuma sessão encontrada. Iniciando nova conversa...');
-      this.wizardState.reset();
-      setTimeout(() => this.startChat(), 500);
+      // CASO 4: Sem sessão anterior
+      if (hashUrl) {
+        console.log('🔍 Hash encontrado na URL (sem sessão local). Carregando orçamento...');
+        await this.carregarOrcamentoParaEdicao(hashUrl);
+      } else {
+        console.log('🆕 Nenhuma sessão encontrada. Iniciando nova conversa...');
+        this.wizardState.reset();
+        setTimeout(() => this.startChat(), 500);
+      }
     }
   }
 
