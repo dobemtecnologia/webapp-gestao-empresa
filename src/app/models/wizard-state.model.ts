@@ -11,6 +11,11 @@ export interface WizardState {
   tokensOpenAi: number; // Tokens OpenAI estimados
   selectedPeriod: 'MENSAL' | 'TRIMESTRAL' | 'SEMESTRAL' | 'ANUAL' | null; // Período selecionado
   baseMonthlyValue?: number | null; // Valor mensal base retornado pela simulação
+  empresaData?: {
+    cnpj: string;
+    razaoSocial: string;
+    nomeFantasia?: string;
+  };
 }
 
 export interface PeriodOption {

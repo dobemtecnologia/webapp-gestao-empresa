@@ -29,7 +29,8 @@ export class WizardStateService {
     monthlyCredits: 1000,
     tokensOpenAi: 1000000,
     selectedPeriod: null,
-    baseMonthlyValue: null
+    baseMonthlyValue: null,
+    empresaData: undefined
   });
 
   // Novos Signals para o Chat
@@ -301,9 +302,17 @@ export class WizardStateService {
       monthlyCredits: 1000,
       tokensOpenAi: 1000000,
       selectedPeriod: null,
-      baseMonthlyValue: null
+      baseMonthlyValue: null,
+      empresaData: undefined
     });
   }
+
+  // Métodos para dados da empresa
+  setEmpresaData(data: { cnpj: string; razaoSocial: string; nomeFantasia?: string }) {
+    this.state.update(s => ({ ...s, empresaData: data }));
+  }
+
+  readonly empresaData = computed(() => this.state().empresaData);
 
   getState(): WizardState {
     return this.state();

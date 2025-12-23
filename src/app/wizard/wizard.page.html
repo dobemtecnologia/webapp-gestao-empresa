@@ -67,6 +67,37 @@
       </div>
     }
 
+    <!-- Passo 0.5: CNPJ -->
+    @if (currentStep() === 0.5) {
+      <div class="step-input cnpj-input">
+        <ion-item lines="none" class="custom-input">
+          <ion-icon name="business-outline" slot="start"></ion-icon>
+          <ion-input 
+            type="text"
+            placeholder="00.000.000/0000-00" 
+            [value]="tempCNPJ"
+            (ionInput)="onCNPJInput($event)"
+            (keyup.enter)="consultarCNPJ()"
+            [disabled]="isConsultingCNPJ"
+            maxlength="18"
+            autofocus>
+          </ion-input>
+          <ion-button 
+            slot="end" 
+            fill="clear" 
+            (click)="consultarCNPJ()" 
+            [disabled]="!tempCNPJ || isConsultingCNPJ" 
+            class="send-name-btn">
+            @if (isConsultingCNPJ) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="search"></ion-icon>
+            }
+          </ion-button>
+        </ion-item>
+      </div>
+    }
+
     <!-- Passo 1: Setores -->
     @if (currentStep() === 1) {
       <div class="step-input component-input">

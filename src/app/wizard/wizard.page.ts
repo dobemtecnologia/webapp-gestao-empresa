@@ -5,13 +5,15 @@ import { WizardFirebaseService } from '../services/wizard-firebase.service';
 import { PlanoService } from '../services/plano.service';
 import { OrcamentoService } from '../services/orcamento.service';
 import { SetorService } from '../services/setor.service';
+import { CnpjService } from '../services/cnpj.service';
 import { AuthService } from '../services/auth.service';
 import { TokenStorageService } from '../services/token-storage.service';
+import { CNPJResponse } from '../models/cnpj-response.model';
+import { SetorDTO } from '../models/setor.model';
 import { PlanoBlueprint } from '../models/plano-blueprint.model';
 import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model';
 import { OrcamentoDTO, ItemOrcamentoDTO, LeadData } from '../models/orcamento.model';
 import { PeriodoContratacao } from '../models/periodo-contratacao.model';
-import { SetorDTO } from '../models/setor.model';
 import { LoadingController, ToastController, MenuController, IonContent } from '@ionic/angular';
 import { LoginVM } from '../models/login-vm.model';
 import { firstValueFrom, of } from 'rxjs';
@@ -32,6 +34,7 @@ export class WizardPage implements OnInit, OnDestroy {
   private planoService = inject(PlanoService);
   private orcamentoService = inject(OrcamentoService);
   private setorService = inject(SetorService);
+  private cnpjService = inject(CnpjService);
   private authService = inject(AuthService);
   private tokenStorage = inject(TokenStorageService);
   private loadingController = inject(LoadingController);
@@ -50,6 +53,8 @@ export class WizardPage implements OnInit, OnDestroy {
   tempName = ''; 
   tempEmail = ''; // Para captura de lead
   tempPhone = ''; // Opcional
+  tempCNPJ = ''; // Para captura de CNPJ
+  isConsultingCNPJ = false;
 
   // Computed signals do estado
   currentStep = this.wizardState.currentStep;
@@ -128,10 +133,139 @@ export class WizardPage implements OnInit, OnDestroy {
     this.wizardState.addMessage({ sender: 'user', type: 'text', content: this.tempName });
     
     this.tempName = '';
-    this.wizardState.nextStep(); // Passo 1 (Setores)
     this.scrollToBottom();
     
-    this.showEvaResponse(`Prazer, <strong>${this.wizardState.userName()}</strong>! 😉<br>Para eu entender melhor sua necessidade, em quais <strong>setores</strong> sua empresa precisa de reforço hoje?`);
+    // Pergunta pelo CNPJ ao invés de ir direto para setores
+    setTimeout(() => {
+      this.wizardState.setCurrentStep(0.5); // Passo intermediário: CNPJ
+      this.showEvaResponse(`Prazer, <strong>${this.wizardState.userName()}</strong>! 😉<br>Para eu conhecer melhor sua empresa e já preparar as melhores configurações, qual é o <strong>CNPJ</strong> da sua empresa?`);
+    }, 800);
+  }
+
+  formatarCNPJ(cnpj: string): string {
+    // Remove tudo que não é dígito
+    const cnpjLimpo = cnpj.replace(/\D/g, '');
+    
+    // Aplica a máscara XX.XXX.XXX/XXXX-XX
+    if (cnpjLimpo.length <= 2) {
+      return cnpjLimpo;
+    } else if (cnpjLimpo.length <= 5) {
+      return cnpjLimpo.replace(/(\d{2})(\d+)/, '$1.$2');
+    } else if (cnpjLimpo.length <= 8) {
+      return cnpjLimpo.replace(/(\d{2})(\d{3})(\d+)/, '$1.$2.$3');
+    } else if (cnpjLimpo.length <= 12) {
+      return cnpjLimpo.replace(/(\d{2})(\d{3})(\d{3})(\d+)/, '$1.$2.$3/$4');
+    } else {
+      return cnpjLimpo.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    }
+  }
+
+  onCNPJInput(event: any) {
+    const valor = event.target.value || '';
+    this.tempCNPJ = this.formatarCNPJ(valor);
+  }
+
+  async consultarCNPJ() {
+    const cnpjLimpo = this.tempCNPJ.replace(/\D/g, '');
+    
+    if (cnpjLimpo.length !== 14) {
+      this.showToast('CNPJ inválido. Por favor, digite um CNPJ válido (14 dígitos).', 'warning');
+      return;
+    }
+
+    this.isConsultingCNPJ = true;
+    this.isTyping = true;
+
+    try {
+      const cnpjData: CNPJResponse = await firstValueFrom(this.cnpjService.consultarCNPJ(cnpjLimpo));
+      
+      // Adiciona mensagem do usuário com CNPJ
+      this.wizardState.addMessage({ 
+        sender: 'user', 
+        type: 'text', 
+        content: cnpjData.cnpj 
+      });
+
+      // Salva dados da empresa
+      this.wizardState.setEmpresaData({
+        cnpj: cnpjData.cnpj,
+        razaoSocial: cnpjData.razaoSocial,
+        nomeFantasia: cnpjData.nomeFantasia
+      });
+
+      // Busca o setor completo pelo ID sugerido
+      if (cnpjData.setorSugerido && cnpjData.setorSugerido.id) {
+        try {
+          const setorCompleto: SetorDTO = await firstValueFrom(
+            this.setorService.getSetorById(cnpjData.setorSugerido.id)
+          );
+          
+          // Seleciona o setor automaticamente
+          this.wizardState.toggleSector(setorCompleto);
+          
+          this.tempCNPJ = '';
+          this.scrollToBottom();
+
+          // Mensagem da Eva confirmando a seleção
+          setTimeout(() => {
+            this.isTyping = false;
+            const nomeEmpresa = cnpjData.nomeFantasia || cnpjData.razaoSocial;
+            const nomeSetor = cnpjData.setorSugerido.nome;
+            
+            this.wizardState.addMessage({
+              sender: 'eva',
+              type: 'text',
+              content: `Perfeito, <strong>${this.wizardState.userName()}</strong>! 💼<br>Localizei a empresa <strong>${nomeEmpresa}</strong>. Como vocês atuam no ramo de <strong>${nomeSetor}</strong>, já preparei as melhores configurações para vocês. Vamos prosseguir?`
+            });
+
+            // Avança automaticamente para o passo de Assistentes após delay
+            setTimeout(() => {
+              this.wizardState.setCurrentStep(2); // Passo 2: Assistentes
+              this.scrollToBottom();
+              
+              setTimeout(() => {
+                this.showEvaResponse('Ótima escolha! 🚀<br>Analisei seus setores e encontrei estes especialistas. <strong>Quantos assistentes</strong> de cada tipo você vai precisar?');
+              }, 500);
+            }, 2000);
+          }, 1000);
+          
+        } catch (setorError) {
+          console.error('Erro ao buscar setor:', setorError);
+          // Se não conseguir buscar o setor completo, continua sem seleção automática
+          this.handleCNPJError('Não foi possível identificar o setor da empresa. Você pode selecionar manualmente.');
+        }
+      } else {
+        // Não há setor sugerido
+        this.handleCNPJError('Não foi possível identificar o setor da empresa. Você pode selecionar manualmente.');
+      }
+      
+    } catch (error: any) {
+      console.error('Erro ao consultar CNPJ:', error);
+      this.isTyping = false;
+      this.isConsultingCNPJ = false;
+      
+      let errorMessage = 'Erro ao consultar CNPJ. Tente novamente.';
+      if (error.status === 404) {
+        errorMessage = 'CNPJ não encontrado. Verifique se o CNPJ está correto.';
+      } else if (error.error?.message) {
+        errorMessage = error.error.message;
+      }
+      
+      this.showToast(errorMessage, 'danger');
+    }
+  }
+
+  private handleCNPJError(message: string) {
+    this.isTyping = false;
+    this.isConsultingCNPJ = false;
+    this.showToast(message, 'warning');
+    
+    // Vai para seleção manual de setores
+    this.wizardState.setCurrentStep(1);
+    this.scrollToBottom();
+    setTimeout(() => {
+      this.showEvaResponse(`Prazer, <strong>${this.wizardState.userName()}</strong>! 😉<br>Para eu entender melhor sua necessidade, em quais <strong>setores</strong> sua empresa precisa de reforço hoje?`);
+    }, 500);
   }
 
   confirmEmail() {

@@ -125,3 +125,4 @@ async function fetchCNAEData() {
 // Executar
 fetchCNAEData();
 
+

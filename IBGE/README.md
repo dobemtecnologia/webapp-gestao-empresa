@@ -63,3 +63,4 @@ const agricultura = subclasses.filter(s =>
 
 Os dados podem ser atualizados executando o script `fetch-cnae.js` novamente. A data da coleta é registrada no arquivo consolidado.
 
+
