@@ -31,6 +31,7 @@ export class WizardStateService {
     selectedPeriod: null,
     baseMonthlyValue: null,
     empresaData: undefined,
+    orcamentoId: null,
     orcamentoHash: null
   });
 
@@ -66,6 +67,7 @@ export class WizardStateService {
         selectedSectors: currentState.selectedSectors.map(s => s.nome),
         infrastructure: currentState.infrastructure,
         selectedPeriod: currentState.selectedPeriod,
+        orcamentoId: currentState.orcamentoId,
         orcamentoHash: currentState.orcamentoHash
       };
 
@@ -93,6 +95,7 @@ export class WizardStateService {
   readonly tokensOpenAi = computed(() => this.state().tokensOpenAi);
   readonly selectedPeriod = computed(() => this.state().selectedPeriod);
   readonly baseMonthlyValue = computed(() => this.state().baseMonthlyValue ?? null);
+  readonly orcamentoId = computed(() => this.state().orcamentoId);
   readonly orcamentoHash = computed(() => this.state().orcamentoHash);
 
   // Computed signal para assistentes consolidados dos setores selecionados (sem duplicatas)
@@ -165,6 +168,12 @@ export class WizardStateService {
           if (sessionData.userChoices.name) this._userName.set(sessionData.userChoices.name);
           if (sessionData.userChoices.email) this._userEmail.set(sessionData.userChoices.email);
           if (sessionData.userChoices.phone) this._userPhone.set(sessionData.userChoices.phone);
+          
+          // Restaura orcamentoId se disponível em userChoices e não no state
+          if (sessionData.userChoices.orcamentoId && !this.state().orcamentoId) {
+             const restoredId = sessionData.userChoices.orcamentoId;
+             this.state.update(s => ({ ...s, orcamentoId: restoredId }));
+          }
         }
         
         console.log('Sessão restaurada com sucesso!');
@@ -326,6 +335,10 @@ export class WizardStateService {
     this.state.update(s => ({ ...s, baseMonthlyValue: baseValue }));
   }
 
+  setOrcamentoId(id: number | null) {
+    this.state.update(s => ({ ...s, orcamentoId: id }));
+  }
+
   setOrcamentoHash(hash: string | null) {
     this.state.update(s => ({ ...s, orcamentoHash: hash }));
   }
@@ -346,6 +359,7 @@ export class WizardStateService {
       selectedPeriod: null,
       baseMonthlyValue: null,
       empresaData: undefined,
+      orcamentoId: null,
       orcamentoHash: null
     });
   }

@@ -18,6 +18,12 @@ export class OrcamentoService {
     return this.http.post<OrcamentoDTO>(this.apiUrlCustom, orcamento);
   }
 
+  update(id: number, orcamento: OrcamentoDTO): Observable<OrcamentoDTO> {
+    // Tenta atualizar usando o endpoint customizado com ID (PUT)
+    // Assumindo que o backend suporta PUT no endpoint customizado com ID
+    return this.http.put<OrcamentoDTO>(`${this.apiUrlCustom}/${id}`, orcamento);
+  }
+
   getById(id: number): Observable<OrcamentoDTO> {
     return this.http.get<OrcamentoDTO>(`${this.apiUrl}/${id}`);
   }

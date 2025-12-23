@@ -15,7 +15,7 @@ import { PlanoBlueprint } from '../models/plano-blueprint.model';
 import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model';
 import { OrcamentoDTO, ItemOrcamentoDTO, LeadData } from '../models/orcamento.model';
 import { PeriodoContratacao } from '../models/periodo-contratacao.model';
-import { LoadingController, ToastController, MenuController, IonContent } from '@ionic/angular';
+import { LoadingController, ToastController, MenuController, IonContent, ViewWillEnter } from '@ionic/angular';
 import { LoginVM } from '../models/login-vm.model';
 import { firstValueFrom, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
@@ -26,7 +26,7 @@ import { catchError, finalize } from 'rxjs/operators';
   styleUrls: ['./wizard.page.scss'],
   standalone: false,
 })
-export class WizardPage implements OnInit, OnDestroy {
+export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
   @ViewChild('content', { static: false }) content?: IonContent;
   
   wizardState = inject(WizardStateService);
@@ -80,10 +80,14 @@ export class WizardPage implements OnInit, OnDestroy {
   async ngOnInit() {
     await this.menuController.enable(false);
     await this.loginAutomatico();
-    
-    // Verifica se há hash na query string para edição
-    const hashUrl = this.route.snapshot.queryParams['hash'];
-    const action = this.route.snapshot.queryParams['action'];
+    // A inicialização principal agora acontece no ionViewWillEnter para suportar reuso de views
+  }
+
+  async ionViewWillEnter() {
+    // Garante leitura correta dos parâmetros mesmo se o componente for reutilizado
+    const params = await firstValueFrom(this.route.queryParams);
+    const hashUrl = params['hash'];
+    const action = params['action'];
     
     // Cria ou recupera o Session ID logo no início
     const sessionId = this.firebaseService.getOrCreateSessionId();
@@ -102,6 +106,13 @@ export class WizardPage implements OnInit, OnDestroy {
       if (hashUrl && hashSessao === hashUrl) {
         console.log('🔄 Refresh detectado na mesma proposta. Mantendo histórico e estado.');
         
+        // Verificação de segurança: Se temos hash mas não temos ID, recarrega da API
+        if (!this.wizardState.orcamentoId()) {
+            console.warn('⚠️ Sessão restaurada tem Hash mas não tem ID. Recarregando da API...');
+            await this.carregarOrcamentoParaEdicao(hashUrl, action === 'edit');
+            return;
+        }
+
         if (action === 'edit') {
           this.iniciarModoEdicao();
           return;
@@ -904,6 +915,9 @@ export class WizardPage implements OnInit, OnDestroy {
 
       // Salva o hash para uso posterior
       this.wizardState.setOrcamentoHash(hash);
+      if (orcamento.id) {
+        this.wizardState.setOrcamentoId(orcamento.id);
+      }
 
       // Mapeia itens para o estado (restaura setores, assistentes, canais, infraestrutura)
       await this.mapearItensParaEstado(itens);
@@ -974,36 +988,32 @@ export class WizardPage implements OnInit, OnDestroy {
     }, 500);
   }
 
-  selecionarOpcaoEdicao(stepDestino: number) {
-    this.wizardState.setCurrentStep(stepDestino);
-    
+  async selecionarOpcaoEdicao(stepDestino: number) {
     let mensagem = '';
     switch(stepDestino) {
         case 6: mensagem = 'Alterar Período'; break;
         case 4: mensagem = 'Alterar Infraestrutura'; break;
         case 2: mensagem = 'Alterar Assistentes'; break;
         case 3: mensagem = 'Alterar Canais'; break;
-        case 7: mensagem = 'Ver Resultado'; break;
+        case 7: mensagem = 'Ver Resultado Atualizado'; break;
         default: mensagem = 'Editar';
     }
     
     this.wizardState.addMessage({ sender: 'user', type: 'text', content: mensagem });
+    this.scrollToBottom();
     
     if (stepDestino === 7) {
-        // Se for ver resultado, re-calcula simulação
-        this.simularPlano().then(() => {
-             // Redireciona para pagina de resultado se já tiver hash
-             const hash = this.wizardState.orcamentoHash();
-             if (hash) {
-                 this.router.navigate(['/resultado-orcamento'], { queryParams: { hash } });
-             } else {
-                 // Fallback para passo de resumo
-                 this.wizardState.setCurrentStep(7);
-             }
-        });
+        // Não navega para o passo 7 (Resumo). Inicia atualização direta.
+        // Recalcula simulação
+        const simulacaoOk = await this.simularPlano();
+        if (simulacaoOk) {
+             // Atualiza o orçamento na API antes de redirecionar
+             await this.atualizarOrcamentoExistente();
+        }
+        return;
     }
 
-    this.scrollToBottom();
+    this.wizardState.setCurrentStep(stepDestino);
   }
 
   cancelarEdicao() {
@@ -1109,6 +1119,81 @@ export class WizardPage implements OnInit, OnDestroy {
       this.router.navigate(['/resultado-orcamento'], { queryParams: { hash } });
     } else {
       this.showToast('Hash da proposta não encontrado.', 'warning');
+    }
+  }
+
+  async atualizarOrcamentoExistente() {
+    console.log('🔄 Atualizando orçamento existente...');
+    
+    // Garante que os dados de contato estão no estado
+    if (this.tempEmail) this.wizardState.setUserEmail(this.tempEmail);
+    if (this.tempPhone) this.wizardState.setUserPhone(this.tempPhone);
+
+    const orcamentoId = this.wizardState.orcamentoId();
+    if (!orcamentoId) {
+        this.showToast('Erro: ID do orçamento não encontrado.', 'danger');
+        return;
+    }
+
+    const loading = await this.loadingController.create({
+      message: 'Atualizando proposta...',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    try {
+      this.isLoading = true;
+
+      // Busca dados necessários (mesma lógica do finalizar)
+      const periodoCodigo = this.selectedPeriod();
+      let periodoData: PeriodoContratacao | null = null;
+
+      if (periodoCodigo) {
+        const periodos = await firstValueFrom(this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([]))));
+        periodoData = periodos?.find(p => p.codigo === periodoCodigo && p.ativo) || null;
+      }
+
+      const vendedors = await firstValueFrom(this.planoService.getVendedors('id,asc', 0, 100).pipe(catchError(() => of([]))));
+      const vendedorId = vendedors?.find(v => v.tipo === 'SISTEMA_IA')?.id;
+
+      if (!vendedorId) throw new Error('Vendedor sistema não encontrado');
+
+      const leadData: LeadData = {
+        nome: this.wizardState.userName(),
+        email: this.wizardState.userEmail() || this.tempEmail,
+        telefone: this.wizardState.userPhone() || this.tempPhone
+      };
+
+      const orcamentoDTO = this.converterParaOrcamentoDTO(leadData, periodoData, vendedorId);
+      orcamentoDTO.id = orcamentoId; // Garante o ID para atualização
+
+      this.orcamentoService.update(orcamentoId, orcamentoDTO)
+        .pipe(finalize(() => {
+            this.isLoading = false;
+            loading.dismiss();
+        }))
+        .subscribe({
+          next: (orcamento) => {
+            console.log('✅ Orçamento atualizado com sucesso:', orcamento);
+            const hash = orcamento.codigoHash || this.wizardState.orcamentoHash();
+            
+            if (hash) {
+                this.router.navigate(['/resultado-orcamento'], { queryParams: { hash } });
+            } else {
+                this.showToast('Orçamento atualizado, mas hash não encontrado.', 'warning');
+            }
+          },
+          error: (err) => {
+            console.error('❌ Erro ao atualizar orçamento:', err);
+            this.showToast('Erro ao atualizar proposta. Tente novamente.', 'danger');
+          }
+        });
+
+    } catch (e: any) {
+      loading.dismiss();
+      this.isLoading = false;
+      console.error('❌ Erro no catch do atualizar:', e);
+      this.showToast('Erro ao preparar atualização.', 'danger');
     }
   }
 

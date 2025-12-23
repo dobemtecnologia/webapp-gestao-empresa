@@ -17,6 +17,7 @@ export interface WizardState {
     nomeFantasia?: string;
     situacaoCadastral?: string;
   };
+  orcamentoId?: number | null; // ID do orçamento (para edição)
   orcamentoHash?: string | null; // Hash do orçamento finalizado
 }
 
