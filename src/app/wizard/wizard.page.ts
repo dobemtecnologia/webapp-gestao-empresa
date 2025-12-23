@@ -47,8 +47,8 @@ export class WizardPage implements OnInit, OnDestroy {
   isLoading = false;
   carregandoSetores = false;
   setoresDisponiveis: SetorDTO[] = [];
-  orcamentoFinalizadoHash: string | null = null;
-  
+  // orcamentoFinalizadoHash removido, usando do state
+
   // Controle do Chat
   chatHistory = this.wizardState.chatHistory;
   isTyping = false;
@@ -67,6 +67,11 @@ export class WizardPage implements OnInit, OnDestroy {
   monthlyCredits = this.wizardState.monthlyCredits;
   tokensOpenAi = this.wizardState.tokensOpenAi;
   selectedPeriod = this.wizardState.selectedPeriod;
+
+  // Getter para compatibilidade com o template
+  get orcamentoFinalizadoHash() {
+    return this.wizardState.orcamentoHash();
+  }
 
   async ngOnInit() {
     await this.menuController.enable(false);
@@ -777,7 +782,6 @@ export class WizardPage implements OnInit, OnDestroy {
   }
 
   resetWizard() {
-    this.orcamentoFinalizadoHash = null;
     this.tempEmail = '';
     this.tempName = '';
     this.tempPhone = ''; // Reset phone
@@ -851,7 +855,7 @@ export class WizardPage implements OnInit, OnDestroy {
       }
 
       // Salva o hash para uso posterior
-      this.orcamentoFinalizadoHash = hash;
+      this.wizardState.setOrcamentoHash(hash);
 
       // Mapeia itens para o estado (restaura setores, assistentes, canais, infraestrutura)
       await this.mapearItensParaEstado(itens);
@@ -994,7 +998,7 @@ export class WizardPage implements OnInit, OnDestroy {
   }
 
   verPropostaCompleta() {
-    const hash = this.orcamentoFinalizadoHash;
+    const hash = this.wizardState.orcamentoHash();
     if (hash) {
       this.router.navigate(['/resultado-orcamento'], { queryParams: { hash } });
     } else {
@@ -1131,7 +1135,7 @@ export class WizardPage implements OnInit, OnDestroy {
   }
 
   private handleSuccess(orcamento: OrcamentoDTO) {
-    this.orcamentoFinalizadoHash = orcamento.codigoHash!;
+    this.wizardState.setOrcamentoHash(orcamento.codigoHash!);
     
     // Sucesso: Delay para naturalidade
     setTimeout(() => {

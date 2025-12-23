@@ -30,7 +30,8 @@ export class WizardStateService {
     tokensOpenAi: 1000000,
     selectedPeriod: null,
     baseMonthlyValue: null,
-    empresaData: undefined
+    empresaData: undefined,
+    orcamentoHash: null
   });
 
   // Novos Signals para o Chat
@@ -64,7 +65,8 @@ export class WizardStateService {
           .map(a => ({ id: a.id, nome: a.nome, quantity: a.quantity })),
         selectedSectors: currentState.selectedSectors.map(s => s.nome),
         infrastructure: currentState.infrastructure,
-        selectedPeriod: currentState.selectedPeriod
+        selectedPeriod: currentState.selectedPeriod,
+        orcamentoHash: currentState.orcamentoHash
       };
 
       // Salva se houver dados relevantes
@@ -91,6 +93,7 @@ export class WizardStateService {
   readonly tokensOpenAi = computed(() => this.state().tokensOpenAi);
   readonly selectedPeriod = computed(() => this.state().selectedPeriod);
   readonly baseMonthlyValue = computed(() => this.state().baseMonthlyValue ?? null);
+  readonly orcamentoHash = computed(() => this.state().orcamentoHash);
 
   // Computed signal para assistentes consolidados dos setores selecionados (sem duplicatas)
   readonly availableAssistants = computed(() => {
@@ -323,6 +326,10 @@ export class WizardStateService {
     this.state.update(s => ({ ...s, baseMonthlyValue: baseValue }));
   }
 
+  setOrcamentoHash(hash: string | null) {
+    this.state.update(s => ({ ...s, orcamentoHash: hash }));
+  }
+
   reset() {
     this.firebaseService.clearLocalSession(); // Limpa sessão do Firebase
     this._chatHistory.set([]);
@@ -338,7 +345,8 @@ export class WizardStateService {
       tokensOpenAi: 1000000,
       selectedPeriod: null,
       baseMonthlyValue: null,
-      empresaData: undefined
+      empresaData: undefined,
+      orcamentoHash: null
     });
   }
 

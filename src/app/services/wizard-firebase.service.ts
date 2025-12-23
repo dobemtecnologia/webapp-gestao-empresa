@@ -18,6 +18,7 @@ export interface UserChoices {
   selectedSectors?: string[];
   infrastructure?: number | null;
   selectedPeriod?: string | null;
+  orcamentoHash?: string | null;
 }
 
 export interface WizardSessionData {
