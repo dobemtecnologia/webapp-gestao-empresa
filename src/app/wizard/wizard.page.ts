@@ -428,23 +428,6 @@ export class WizardPage implements OnInit, OnDestroy {
     }, 500);
   }
 
-  leadConfirmed = false;
-
-  confirmEmail() {
-    if (!this.isValidEmail(this.tempEmail)) {
-      this.showToast('Por favor, insira um e-mail válido.', 'warning');
-      return;
-    }
-
-    // 1. Adiciona mensagem do usuário e rola a tela
-    const contactInfo = this.tempPhone ? `${this.tempEmail} | ${this.tempPhone}` : this.tempEmail;
-    this.wizardState.addMessage({ sender: 'user', type: 'text', content: contactInfo });
-    this.scrollToBottom();
-    
-    // 2. Marca que os dados de contato foram confirmados
-    this.leadConfirmed = true;
-    this.showToast('Dados de contato confirmados. Agora clique em "Gerar Proposta Oficial".', 'success');
-  }
 
   async nextStep() {
     if (!this.canProceedToNextStep() || this.isLoading) return;
@@ -496,8 +479,6 @@ export class WizardPage implements OnInit, OnDestroy {
       content: 'Quero gerar a proposta oficial.' 
     });
     
-    // Sempre que entrar no passo de contato, começa SEM confirmação
-    this.leadConfirmed = false;
     this.wizardState.setCurrentStep(8); // Passo 8: Captura de Email
     this.scrollToBottom();
 
@@ -512,9 +493,6 @@ export class WizardPage implements OnInit, OnDestroy {
       content: 'Concordo com o valor do orçamento.'
     });
     this.scrollToBottom();
-
-    // Garante que vamos pedir novamente os dados de contato
-    this.leadConfirmed = false;
 
     // Vai para o passo de dados de contato e pergunta e-mail/telefone
     this.wizardState.setCurrentStep(8);
@@ -790,8 +768,6 @@ export class WizardPage implements OnInit, OnDestroy {
     this.tempEmail = '';
     this.tempName = '';
     this.tempPhone = ''; // Reset phone
-    this.leadConfirmed = false;
-    this.leadConfirmed = false;
     this.wizardState.reset();
     this.startChat();
   }
@@ -1222,7 +1198,7 @@ export class WizardPage implements OnInit, OnDestroy {
     }
   }
 
-  private isValidEmail(email: string): boolean {
+  isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }

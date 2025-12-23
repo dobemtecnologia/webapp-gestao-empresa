@@ -258,7 +258,7 @@
               type="email" 
               placeholder="Seu melhor e-mail..." 
               [(ngModel)]="tempEmail"
-              (keyup.enter)="confirmEmail()">
+              (keyup.enter)="finalizarOrcamento()">
             </ion-input>
           </ion-item>
           
@@ -268,37 +268,24 @@
               type="tel" 
               placeholder="WhatsApp (Opcional)..." 
               [(ngModel)]="tempPhone"
-              (keyup.enter)="confirmEmail()">
+              (keyup.enter)="finalizarOrcamento()">
             </ion-input>
           </ion-item>
 
-          @if (!leadConfirmed) {
-            <ion-button 
-              expand="block" 
-              (click)="confirmEmail()" 
-              [disabled]="isLoading || !tempEmail" 
-              class="action-btn">
-              Confirmar dados de contato
-              <ion-icon name="checkmark-circle-outline" slot="end"></ion-icon>
-            </ion-button>
-          }
-
-          @if (leadConfirmed) {
-            <ion-button 
-              expand="block" 
-              color="success"
-              (click)="finalizarOrcamento()" 
-              [disabled]="isLoading" 
-              class="action-btn mt-2">
-              @if (isLoading) {
-                <ion-spinner name="crescent" color="light"></ion-spinner>
-                <span class="ml-2">Gerando Proposta...</span>
-              } @else {
-                Gerar Proposta Oficial
-                <ion-icon name="document-text-outline" slot="end"></ion-icon>
-              }
-            </ion-button>
-          }
+          <ion-button 
+            expand="block" 
+            color="success"
+            (click)="finalizarOrcamento()" 
+            [disabled]="isLoading || !isValidEmail(tempEmail)" 
+            class="action-btn">
+            @if (isLoading) {
+              <ion-spinner name="crescent" color="light"></ion-spinner>
+              <span class="ml-2">Gerando Proposta...</span>
+            } @else {
+              Gerar Proposta Oficial
+              <ion-icon name="document-text-outline" slot="end"></ion-icon>
+            }
+          </ion-button>
         </div>
       </div>
     }
