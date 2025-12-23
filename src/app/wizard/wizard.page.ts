@@ -439,7 +439,27 @@ export class WizardPage implements OnInit, OnDestroy {
     this.addUserResponseSummary(step);
 
     // Lógica Específica de Transição
-    if (step === 5) { // Volume -> Período
+    if (step === 4) { // Infraestrutura -> Período (pulando Volume)
+      // Define valores padrão de volume se não estiverem definidos
+      if (this.monthlyCredits() <= 0) {
+        this.wizardState.setMonthlyCredits(1000); // Valor padrão
+      }
+      if (this.tokensOpenAi() <= 0) {
+        this.wizardState.setTokensOpenAi(1000000); // Valor padrão
+      }
+      
+      // Executa simulação antes de ir para o passo de Período
+      const sucesso = await this.simularPlano();
+      if (!sucesso) return;
+      
+      // Pula direto para o Passo 6 (Período), pulando o Passo 5 (Volume)
+      this.wizardState.setCurrentStep(6);
+      this.scrollToBottom();
+      this.triggerNextEvaQuestion(6);
+      return;
+    }
+
+    if (step === 5) { // Volume -> Período (não deve mais acontecer, mas mantido como fallback)
       const sucesso = await this.simularPlano();
       if (!sucesso) return;
     }
@@ -484,8 +504,8 @@ export class WizardPage implements OnInit, OnDestroy {
       case 4: // Infra
         content = this.infrastructure() === 1001 ? 'Prefiro a nuvem compartilhada.' : 'Quero servidor dedicado.';
         break;
-      case 5: // Volume
-        content = `Estimo cerca de ${this.monthlyCredits()} conversas/mês.`;
+      case 5: // Volume (oculto - não deve aparecer)
+        // Não adiciona mensagem do usuário, pois o passo está oculto
         break;
       case 6: // Período
         content = `Prefiro o plano ${this.selectedPeriod()}.`;
@@ -515,11 +535,11 @@ export class WizardPage implements OnInit, OnDestroy {
         case 4: // Canais -> Infra
           message = 'Perfeito. Sobre a infraestrutura tecnológica...<br>Você prefere começar com algo mais ágil (Compartilhado) ou robusto (Dedicado)? 🖥️';
           break;
-        case 5: // Infra -> Volume
+        case 5: // Volume (oculto - não deve aparecer)
           message = 'Estamos quase lá! 📈<br>Qual é a sua estimativa de <strong>conversas por mês</strong>?';
           break;
-        case 6: // Volume -> Período (Com Simulação)
-          message = `Certo, ${this.wizardState.userName()}. Já calculei tudo aqui. 🧮<br>Escolha o <strong>período de contratação</strong> para ver os descontos que consegui para você.`;
+        case 6: // Infra -> Período (pulando Volume, com Simulação já executada)
+          message = `Perfeito, ${this.wizardState.userName()}! 🧮<br>Já calculei tudo aqui. Escolha o <strong>período de contratação</strong> para ver os descontos que consegui para você.`;
           break;
         case 7: // Período -> Resumo
           // Gera o resumo completo como HTML para exibir no chat
@@ -544,12 +564,21 @@ export class WizardPage implements OnInit, OnDestroy {
     ]);
 
     const baseMensal = this.wizardState.baseMonthlyValue() ?? 0;
+    const valorSetup = this.resultadoSimulacao?.valorSetupTotal ?? 0;
     const periodoCodigo = this.selectedPeriod();
     const periodo = periodos.find(p => p.codigo === periodoCodigo && p.ativo);
 
     // Calcula valores do período
     let htmlResumo = '<div style="text-align: left; font-size: 0.95rem;">';
-    htmlResumo += '<strong style="font-size: 1.1rem; display: block; margin-bottom: 12px;">📋 Resumo do Plano</strong>';
+    htmlResumo += '<strong style="font-size: 1.1rem; display: block; margin-bottom: 16px;">📋 Resumo do Plano</strong>';
+    
+    // Destaque para Valores Mensal e Setup
+    htmlResumo += '<div style="background: linear-gradient(135deg, rgba(0, 152, 218, 0.15) 0%, rgba(0, 152, 218, 0.05) 100%); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 2px solid #0098da; box-shadow: 0 4px 12px rgba(0, 152, 218, 0.2);">';
+    htmlResumo += '<div style="display: flex; flex-direction: column; gap: 12px;">';
+    
+    // Valor Mensal em destaque
+    htmlResumo += '<div style="background: rgba(0, 152, 218, 0.2); padding: 12px; border-radius: 8px; border-left: 4px solid #0098da;">';
+    htmlResumo += '<div style="font-size: 0.85rem; color: #0098da; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">💵 Valor Mensal</div>';
     
     if (periodo && baseMensal > 0) {
       const meses = periodo.meses || 1;
@@ -572,15 +601,27 @@ export class WizardPage implements OnInit, OnDestroy {
         ANUAL: 'Anual',
       };
       
-      htmlResumo += `<div style="background: rgba(0, 152, 218, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #0098da;">`;
-      htmlResumo += `<div style="font-weight: 600; color: #0098da; margin-bottom: 4px;">Período: ${periodoLabels[periodoCodigo!] || periodoCodigo} (${meses} meses)</div>`;
-      htmlResumo += `<div style="font-size: 1.3rem; font-weight: bold; color: #0098da; margin: 8px 0;">${this.formatarMoeda(precoMensalComDesconto)} / mês</div>`;
-      htmlResumo += `<div style="font-size: 0.9rem; color: #888;">Total do período: ${this.formatarMoeda(precoPeriodoComDesconto)}</div>`;
+      htmlResumo += `<div style="font-size: 1.5rem; font-weight: bold; color: #0098da; margin: 4px 0; text-shadow: 0 2px 4px rgba(0, 152, 218, 0.3);">${this.formatarMoeda(precoMensalComDesconto)} <span style="font-size: 0.9rem; font-weight: 500;">/ mês</span></div>`;
+      htmlResumo += `<div style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.7); margin-top: 2px;">Período: ${periodoLabels[periodoCodigo!] || periodoCodigo} (${meses} meses) - Total: ${this.formatarMoeda(precoPeriodoComDesconto)}</div>`;
       if (valorDesconto > 0) {
-        htmlResumo += `<div style="font-size: 0.85rem; color: #4caf50; margin-top: 4px;">✨ Desconto de ${periodo.tipoDesconto === 'PERCENTUAL' ? periodo.valorDesconto + '%' : this.formatarMoeda(periodo.valorDesconto)} aplicado!</div>`;
+        htmlResumo += `<div style="font-size: 0.75rem; color: #4caf50; margin-top: 4px; font-weight: 600;">✨ Desconto de ${periodo.tipoDesconto === 'PERCENTUAL' ? periodo.valorDesconto + '%' : this.formatarMoeda(periodo.valorDesconto)} aplicado!</div>`;
       }
-      htmlResumo += `</div>`;
+    } else {
+      htmlResumo += `<div style="font-size: 1.5rem; font-weight: bold; color: #0098da; margin: 4px 0; text-shadow: 0 2px 4px rgba(0, 152, 218, 0.3);">${this.formatarMoeda(baseMensal)} <span style="font-size: 0.9rem; font-weight: 500;">/ mês</span></div>`;
     }
+    htmlResumo += '</div>';
+    
+    // Valor Setup em destaque
+    if (valorSetup > 0) {
+      htmlResumo += '<div style="background: rgba(255, 193, 7, 0.2); padding: 12px; border-radius: 8px; border-left: 4px solid #ffc107;">';
+      htmlResumo += '<div style="font-size: 0.85rem; color: #ffc107; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">🔧 Valor Setup (Inicial)</div>';
+      htmlResumo += `<div style="font-size: 1.5rem; font-weight: bold; color: #ffc107; margin: 4px 0; text-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);">${this.formatarMoeda(valorSetup)}</div>`;
+      htmlResumo += '<div style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.7); margin-top: 2px;">Valor único pago no início</div>';
+      htmlResumo += '</div>';
+    }
+    
+    htmlResumo += '</div>'; // fecha flex container
+    htmlResumo += '</div>'; // fecha destaque principal
 
     // Configuração do plano
     htmlResumo += '<div style="margin-top: 16px;">';
@@ -880,7 +921,7 @@ export class WizardPage implements OnInit, OnDestroy {
         const assistantChannels = this.wizardState.assistantChannels();
         return activeAssistants.every(a => assistantChannels.some(ac => ac.assistantId === a.id && ac.enabled));
       case 4: return this.infrastructure() !== null;
-      case 5: return this.monthlyCredits() > 0;
+      case 5: return true; // Passo oculto, sempre permite avançar
       case 6: return this.selectedPeriod() !== null;
       case 7: return true;
       case 8: return this.isValidEmail(this.tempEmail);
