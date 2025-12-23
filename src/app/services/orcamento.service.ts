@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { OrcamentoDTO } from '../models/orcamento.model';
+import { OrcamentoDTO, ItemOrcamentoDTO } from '../models/orcamento.model';
 
 @Injectable({
   providedIn: 'root'
@@ -27,6 +27,22 @@ export class OrcamentoService {
     // Se o endpoint não existir, pode ser necessário buscar todos e filtrar
     // ou usar outro endpoint específico
     return this.http.get<OrcamentoDTO>(`${this.apiUrl}/hash/${codigoHash}`);
+  }
+
+  // Novo método para buscar orçamento com itens pelo hash
+  getByHashComItens(codigoHash: string): Observable<{ orcamento: OrcamentoDTO; itens: ItemOrcamentoDTO[] }> {
+    // Tenta primeiro pelo endpoint customizado com hash
+    // Se não funcionar, pode tentar buscar pelo ID após obter o orçamento básico
+    return this.http.get<{ orcamento: OrcamentoDTO; itens: ItemOrcamentoDTO[] }>(
+      `${environment.apiUrl}/api/custom/orcamentos/hash/${codigoHash}/com-itens`
+    );
+  }
+
+  // Novo método para buscar orçamento com itens pelo ID
+  getByIdComItens(id: number): Observable<{ orcamento: OrcamentoDTO; itens: ItemOrcamentoDTO[] }> {
+    return this.http.get<{ orcamento: OrcamentoDTO; itens: ItemOrcamentoDTO[] }>(
+      `${environment.apiUrl}/api/custom/orcamentos/${id}/com-itens`
+    );
   }
 
   getAll(sort: string = 'id,desc'): Observable<OrcamentoDTO[]> {

@@ -747,8 +747,11 @@ export class WizardPage implements OnInit, OnDestroy {
   }
 
   verPropostaCompleta() {
-    if (this.orcamentoFinalizadoHash) {
-      this.router.navigate(['/resultado-orcamento'], { queryParams: { hash: this.orcamentoFinalizadoHash } });
+    const hash = this.orcamentoFinalizadoHash;
+    if (hash) {
+      this.router.navigate(['/resultado-orcamento'], { queryParams: { hash } });
+    } else {
+      this.showToast('Hash da proposta não encontrado.', 'warning');
     }
   }
 

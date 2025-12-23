@@ -1,145 +1,147 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
-    <ion-title>Proposta Gerada</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Proposta Gerada</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  @if (isLoading) {
+<ion-content [fullscreen]="true" class="checkout-page">
+  @if (isLoading()) {
     <div class="loading-container">
-      <ion-spinner></ion-spinner>
+      <ion-skeleton-text animated style="width: 100%; height: 200px; margin-bottom: 16px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 100%; height: 150px; margin-bottom: 16px;"></ion-skeleton-text>
+      <ion-skeleton-text animated style="width: 100%; height: 300px;"></ion-skeleton-text>
     </div>
-  } @else if (orcamento) {
-    <div class="resultado-container">
-      <!-- Card de Sucesso -->
-      <ion-card class="success-card">
-        <ion-card-header>
-          <ion-card-title>
-            <ion-icon name="checkmark-circle" color="success"></ion-icon>
-            Proposta Gerada com Sucesso!
-          </ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <p>Sua proposta foi gerada e está pronta para ser compartilhada.</p>
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Resumo de Valores -->
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>Resumo da Proposta</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="valores-resumo">
-            <div class="valor-item">
-              <span class="valor-label">Valor Total (Tabela):</span>
-              <span class="valor-valor">{{ formatarMoeda(orcamento.valorTotalTabela) }}</span>
-            </div>
-            @if (orcamento.percentualDescontoAplicado && orcamento.percentualDescontoAplicado > 0) {
-              <div class="valor-item desconto">
-                <span class="valor-label">Desconto Aplicado:</span>
-                <span class="valor-valor">-{{ orcamento.percentualDescontoAplicado }}%</span>
-              </div>
-            }
-            <div class="valor-item destaque">
-              <span class="valor-label">Valor Final:</span>
-              <span class="valor-valor">{{ formatarMoeda(orcamento.valorTotalFechado) }}</span>
-            </div>
-            @if (orcamento.valorTotalMinimo && orcamento.valorTotalMinimo > 0) {
-              <div class="valor-item">
-                <span class="valor-label">Valor Mínimo:</span>
-                <span class="valor-valor">{{ formatarMoeda(orcamento.valorTotalMinimo) }}</span>
-              </div>
-            }
+  } @else if (orcamento()) {
+    <div class="checkout-container">
+      <!-- Header de Boas-vindas com Eva -->
+      <div class="welcome-header">
+        <div class="eva-bubble">
+          <div class="eva-avatar">
+            <img src="assets/evah.png" alt="Eva" onerror="this.style.display='none'">
           </div>
-        </ion-card-content>
-      </ion-card>
+          <div class="bubble-content">
+            <p>
+              Olá, <strong>{{ orcamento()?.nomeProspect || 'Cliente' }}</strong>! 👋<br>
+              Sua infraestrutura personalizada está pronta. Você pode revisar os detalhes abaixo ou compartilhar este link com sua equipe.
+            </p>
+            <ion-button 
+              fill="clear" 
+              size="small" 
+              (click)="copiarLink()"
+              class="copy-link-btn">
+              <ion-icon name="copy-outline" slot="start"></ion-icon>
+              Copiar Link da Proposta
+            </ion-button>
+          </div>
+        </div>
+      </div>
 
-      <!-- Link Compartilhável -->
-      @if (linkCompartilhavel) {
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Link Compartilhável</ion-card-title>
-            <ion-card-subtitle>Compartilhe esta proposta com sua equipe</ion-card-subtitle>
-          </ion-card-header>
-          <ion-card-content>
-            <div class="link-container">
-              <ion-item>
-                <ion-input [value]="linkCompartilhavel" readonly></ion-input>
-                <ion-button slot="end" fill="outline" (click)="copiarLink()">
-                  <ion-icon slot="icon-only" name="copy-outline"></ion-icon>
-                </ion-button>
-              </ion-item>
+      <!-- Cards de Impacto Financeiro -->
+      <div class="financial-cards">
+        <div class="financial-card monthly-card">
+          <div class="card-icon">
+            <ion-icon name="calendar-outline"></ion-icon>
+          </div>
+          <div class="card-content">
+            <div class="card-label">Investimento Mensal</div>
+            <div class="card-value">{{ formatarMoeda(orcamento()?.valorTotalFechado || 0) }}</div>
+          </div>
+        </div>
+
+        <div class="financial-card setup-card">
+          <div class="card-icon">
+            <ion-icon name="rocket-outline"></ion-icon>
+          </div>
+          <div class="card-content">
+            <div class="card-label">Taxa de Ativação (Setup)</div>
+            <div class="card-value">{{ formatarMoeda(totalSetup()) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Listagem Detalhada da Operação -->
+      <div class="breakdown-section">
+        <h2 class="section-title">Detalhamento da Operação</h2>
+        <div class="items-list">
+          @for (item of itens(); track item.id || item.referenciaId) {
+            <div class="item-card">
+              <div class="item-icon">
+                <ion-icon [name]="getIconeTipoItem(item.tipoItem)"></ion-icon>
+              </div>
+              <div class="item-details">
+                <div class="item-header">
+                  <h3 class="item-description">{{ item.descricao || 'Item sem descrição' }}</h3>
+                  <span class="item-quantity">{{ item.quantidade }}x</span>
+                </div>
+                <div class="item-meta">
+                  <span class="item-type">{{ item.tipoItem }}</span>
+                  @if (item.totalSetupFechado && item.totalSetupFechado > 0) {
+                    <span class="item-setup">Setup: {{ formatarMoeda(item.totalSetupFechado) }}</span>
+                  }
+                </div>
+              </div>
+              <div class="item-cost">
+                <div class="cost-label">Custo Mensal</div>
+                <div class="cost-value">{{ formatarMoeda(item.totalMensalFechado || 0) }}</div>
+              </div>
             </div>
-          </ion-card-content>
-        </ion-card>
+          }
+        </div>
+      </div>
+
+      <!-- Informações Adicionais -->
+      @if (orcamento()?.empresaDadosCnpj) {
+        <div class="company-info">
+          <h3 class="info-title">Informações da Empresa</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Razão Social:</span>
+              <span class="info-value">{{ orcamento()?.empresaDadosCnpj?.razaoSocial }}</span>
+            </div>
+            @if (orcamento()?.empresaDadosCnpj?.nomeFantasia) {
+              <div class="info-item">
+                <span class="info-label">Nome Fantasia:</span>
+                <span class="info-value">{{ orcamento()?.empresaDadosCnpj?.nomeFantasia }}</span>
+              </div>
+            }
+            <div class="info-item">
+              <span class="info-label">CNPJ:</span>
+              <span class="info-value">{{ orcamento()?.empresaDadosCnpj?.cnpj }}</span>
+            </div>
+          </div>
+        </div>
       }
+    </div>
 
-      <!-- Informações do Orçamento -->
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>Informações</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <ion-list>
-            <ion-item>
-              <ion-label>
-                <h3>Status</h3>
-                <p>{{ orcamento.status }}</p>
-              </ion-label>
-            </ion-item>
-            @if (orcamento.codigoHash) {
-              <ion-item>
-                <ion-label>
-                  <h3>Código</h3>
-                  <p>{{ orcamento.codigoHash }}</p>
-                </ion-label>
-              </ion-item>
-            }
-            @if (orcamento.dataValidade) {
-              <ion-item>
-                <ion-label>
-                  <h3>Válido até</h3>
-                  <p>{{ formatarData(orcamento.dataValidade) }}</p>
-                </ion-label>
-              </ion-item>
-            }
-          </ion-list>
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Botões de Ação -->
-      <div class="action-buttons">
+    <!-- Sticky Footer com Ações -->
+    <ion-footer class="action-footer">
+      <div class="footer-actions">
         <ion-button 
           expand="block" 
           color="success" 
           size="large"
-          (click)="contratarAgora()">
-          <ion-icon slot="start" name="card-outline"></ion-icon>
-          Contratar Agora
+          (click)="aprovarEAtivar()"
+          class="action-btn approve-btn">
+          <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+          Aprovar e Ativar
         </ion-button>
         
         <ion-button 
           expand="block" 
           fill="outline" 
-          color="success"
-          (click)="falarComVendedor()">
-          <ion-icon slot="start" name="logo-whatsapp"></ion-icon>
-          Falar com Vendedor
+          color="primary"
+          size="large"
+          (click)="falarComConsultor()"
+          class="action-btn consultor-btn">
+          <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
+          Falar com Consultor
+        </ion-button>
+
+        <ion-button 
+          expand="block" 
+          fill="clear" 
+          color="medium"
+          size="default"
+          (click)="editarProposta()"
+          class="action-btn edit-btn">
+          <ion-icon name="create-outline" slot="start"></ion-icon>
+          Editar Proposta
         </ion-button>
       </div>
-    </div>
+    </ion-footer>
   }
 </ion-content>
-
-
-

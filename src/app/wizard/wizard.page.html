@@ -282,14 +282,19 @@
     @if (currentStep() === 9) {
       <div class="step-input success-actions">
         <div class="success-buttons">
-          <ion-button expand="block" color="tertiary" (click)="verPropostaCompleta()" class="action-btn">
+          <ion-button 
+            expand="block" 
+           color="success"
+            (click)="verPropostaCompleta()" 
+            [disabled]="!orcamentoFinalizadoHash"
+            class="action-btn">
             <ion-icon name="document-text-outline" slot="start"></ion-icon>
             Ver Proposta Completa
           </ion-button>
           
-          <ion-button expand="block" fill="outline" color="light" (click)="resetWizard()" class="action-btn mt-2">
+          <ion-button expand="block" fill="outline" color="warning" (click)="resetWizard()" class="action-btn mt-2">
             <ion-icon name="refresh-outline" slot="start"></ion-icon>
-            Nova Simulação
+            Novo orçamento
           </ion-button>
         </div>
       </div>

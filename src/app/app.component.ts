@@ -33,12 +33,17 @@ export class AppComponent implements OnInit {
     // Monitora mudanças de rota para habilitar/desabilitar o menu
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe((event: any) => {
-        if (event.url === '/login' || event.url.startsWith('/login') || event.url === '/wizard' || event.url.startsWith('/wizard')) {
-          this.menuController.enable(false);
-        } else {
-          this.menuController.enable(true);
-        }
+      .subscribe((event: NavigationEnd) => {
+        const url = event.urlAfterRedirects || event.url;
+        const deveOcultarMenu =
+          url === '/login' ||
+          url.startsWith('/login') ||
+          url === '/wizard' ||
+          url.startsWith('/wizard') ||
+          url === '/resultado-orcamento' ||
+          url.startsWith('/resultado-orcamento');
+
+        this.menuController.enable(!deveOcultarMenu);
       });
   }
 
