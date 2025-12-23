@@ -161,6 +161,42 @@
   border-bottom: 1px solid #222;
 }
 
+.items-section {
+  margin-bottom: 32px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #222;
+}
+
+.section-subtitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  ion-icon {
+    font-size: 24px;
+    color: #0098da;
+  }
+}
+
+.add-item-btn {
+  --color: #0098da;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  margin: 0;
+  font-size: 24px;
+}
+
 .items-list {
   display: flex;
   flex-direction: column;
@@ -225,6 +261,30 @@
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  min-width: 40px;
+  text-align: center;
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  ion-button {
+    --padding-start: 4px;
+    --padding-end: 4px;
+    --color: #0098da;
+    margin: 0;
+    font-size: 20px;
+  }
+}
+
+.remove-btn {
+  --color: #ff4444;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  margin: 0;
+  font-size: 20px;
 }
 
 .item-meta {
@@ -304,12 +364,17 @@
   font-weight: 500;
 }
 
-// Sticky Footer
+// Fixed Footer
 .action-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   background: #121212;
   border-top: 1px solid #222;
   padding: 16px;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
 }
 
 .footer-actions {
@@ -320,11 +385,24 @@
   gap: 12px;
 }
 
+.footer-buttons-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 .action-btn {
   margin: 0;
   --border-radius: 12px;
   font-weight: 600;
   text-transform: none;
+  
+  &.save-btn {
+    --background: #0098da;
+    --color: #ffffff;
+    height: 48px;
+    animation: pulse 2s infinite;
+  }
   
   &.approve-btn {
     --background: #2ed573;
@@ -342,6 +420,15 @@
     --color: #888;
     height: 40px;
     font-size: 14px;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
   }
 }
 

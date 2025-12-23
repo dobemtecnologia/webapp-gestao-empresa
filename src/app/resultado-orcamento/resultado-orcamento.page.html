@@ -39,7 +39,7 @@
           </div>
           <div class="card-content">
             <div class="card-label">Investimento Mensal</div>
-            <div class="card-value">{{ formatarMoeda(orcamento()?.valorTotalFechado || 0) }}</div>
+            <div class="card-value">{{ formatarMoeda(valorTotalFechado()) }}</div>
           </div>
         </div>
 
@@ -57,31 +57,148 @@
       <!-- Listagem Detalhada da Operação -->
       <div class="breakdown-section">
         <h2 class="section-title">Detalhamento da Operação</h2>
-        <div class="items-list">
-          @for (item of itens(); track item.id || item.referenciaId) {
-            <div class="item-card">
-              <div class="item-icon">
-                <ion-icon [name]="getIconeTipoItem(item.tipoItem)"></ion-icon>
-              </div>
-              <div class="item-details">
-                <div class="item-header">
-                  <h3 class="item-description">{{ item.descricao || 'Item sem descrição' }}</h3>
-                  <span class="item-quantity">{{ item.quantidade }}x</span>
-                </div>
-                <div class="item-meta">
-                  <span class="item-type">{{ item.tipoItem }}</span>
-                  @if (item.totalSetupFechado && item.totalSetupFechado > 0) {
-                    <span class="item-setup">Setup: {{ formatarMoeda(item.totalSetupFechado) }}</span>
-                  }
-                </div>
-              </div>
-              <div class="item-cost">
-                <div class="cost-label">Custo Mensal</div>
-                <div class="cost-value">{{ formatarMoeda(item.totalMensalFechado || 0) }}</div>
-              </div>
+        
+        <!-- Seção: Assistentes -->
+        <div class="items-section">
+          <div class="section-header">
+              <h3 class="section-subtitle">
+                <ion-icon name="people-outline"></ion-icon>
+                Assistentes
+              </h3>
+              <ion-button 
+                fill="clear" 
+                size="small" 
+                (click)="abrirModalAdicionarAssistente()"
+                class="add-item-btn">
+                <ion-icon name="add-circle-outline" slot="icon-only"></ion-icon>
+              </ion-button>
             </div>
-          }
-        </div>
+            <div class="items-list">
+              @for (item of itensPorTipo().ASSISTENTE; track item.id || item.referenciaId) {
+                <div class="item-card">
+                  <div class="item-details">
+                    <div class="item-header">
+                      <h3 class="item-description">{{ item.descricao || 'Item sem descrição' }}</h3>
+                      <div class="quantity-controls">
+                        <ion-button 
+                          fill="clear" 
+                          size="small" 
+                          (click)="diminuirQuantidade(item)">
+                          <ion-icon name="remove-circle-outline"></ion-icon>
+                        </ion-button>
+                        <span class="item-quantity">{{ item.quantidade }}x</span>
+                        <ion-button 
+                          fill="clear" 
+                          size="small" 
+                          (click)="aumentarQuantidade(item)">
+                          <ion-icon name="add-circle-outline"></ion-icon>
+                        </ion-button>
+                      </div>
+                    </div>
+                    <div class="item-meta">
+                      @if (item.totalSetupFechado && item.totalSetupFechado > 0) {
+                        <span class="item-setup">Setup: {{ formatarMoeda(item.totalSetupFechado) }}</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="item-cost">
+                    <div class="cost-label">Custo Mensal</div>
+                    <div class="cost-value">{{ formatarMoeda(item.totalMensalFechado || 0) }}</div>
+                  </div>
+                  <ion-button 
+                    fill="clear" 
+                    color="danger" 
+                    size="small" 
+                    (click)="removerItem(item)"
+                    class="remove-btn">
+                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                  </ion-button>
+                </div>
+              }
+            </div>
+          </div>
+
+        <!-- Seção: Canais -->
+        @if (itensPorTipo().CANAL.length > 0) {
+          <div class="items-section">
+            <div class="section-header">
+              <h3 class="section-subtitle">
+                <ion-icon name="chatbubbles-outline"></ion-icon>
+                Canais
+              </h3>
+            </div>
+            <div class="items-list">
+              @for (item of itensPorTipo().CANAL; track item.id || item.referenciaId) {
+                <div class="item-card">
+                  <div class="item-details">
+                    <div class="item-header">
+                      <h3 class="item-description">{{ item.descricao || 'Item sem descrição' }}</h3>
+                      <span class="item-quantity">{{ item.quantidade }}x</span>
+                    </div>
+                    <div class="item-meta">
+                      @if (item.totalSetupFechado && item.totalSetupFechado > 0) {
+                        <span class="item-setup">Setup: {{ formatarMoeda(item.totalSetupFechado) }}</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="item-cost">
+                    <div class="cost-label">Custo Mensal</div>
+                    <div class="cost-value">{{ formatarMoeda(item.totalMensalFechado || 0) }}</div>
+                  </div>
+                  <ion-button 
+                    fill="clear" 
+                    color="danger" 
+                    size="small" 
+                    (click)="removerItem(item)"
+                    class="remove-btn">
+                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                  </ion-button>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Seção: Infraestrutura -->
+        @if (itensPorTipo().INFRAESTRUTURA.length > 0) {
+          <div class="items-section">
+            <div class="section-header">
+              <h3 class="section-subtitle">
+                <ion-icon name="server-outline"></ion-icon>
+                Infraestrutura
+              </h3>
+            </div>
+            <div class="items-list">
+              @for (item of itensPorTipo().INFRAESTRUTURA; track item.id || item.referenciaId) {
+                <div class="item-card">
+                  <div class="item-details">
+                    <div class="item-header">
+                      <h3 class="item-description">{{ item.descricao || 'Item sem descrição' }}</h3>
+                      <span class="item-quantity">{{ item.quantidade }}x</span>
+                    </div>
+                    <div class="item-meta">
+                      @if (item.totalSetupFechado && item.totalSetupFechado > 0) {
+                        <span class="item-setup">Setup: {{ formatarMoeda(item.totalSetupFechado) }}</span>
+                      }
+                    </div>
+                  </div>
+                  <div class="item-cost">
+                    <div class="cost-label">Custo Mensal</div>
+                    <div class="cost-value">{{ formatarMoeda(item.totalMensalFechado || 0) }}</div>
+                  </div>
+                  <ion-button 
+                    fill="clear" 
+                    color="danger" 
+                    size="small" 
+                    (click)="removerItem(item)"
+                    class="remove-btn">
+                    <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                  </ion-button>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </div>
 
       <!-- Informações Adicionais -->
@@ -108,29 +225,45 @@
       }
     </div>
 
-    <!-- Sticky Footer com Ações -->
+    <!-- Fixed Footer com Ações -->
     <ion-footer class="action-footer">
       <div class="footer-actions">
-        <ion-button 
-          expand="block" 
-          color="success" 
-          size="large"
-          (click)="aprovarEAtivar()"
-          class="action-btn approve-btn">
-          <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-          Aprovar e Ativar
-        </ion-button>
-        
-        <ion-button 
-          expand="block" 
-          fill="outline" 
-          color="primary"
-          size="large"
-          (click)="falarComConsultor()"
-          class="action-btn consultor-btn">
-          <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
-          Falar com Consultor
-        </ion-button>
+        <!-- Botão Salvar Alterações (aparece apenas quando há mudanças) -->
+        @if (temMudancas()) {
+          <ion-button 
+            expand="block" 
+            color="primary" 
+            size="large"
+            (click)="salvarAlteracoes()"
+            class="action-btn save-btn">
+            <ion-icon name="save-outline" slot="start"></ion-icon>
+            Salvar Alterações
+          </ion-button>
+        }
+
+        <!-- Grid com Aprovar e Ativar (direita) e Falar com Consultor (esquerda) -->
+        <div class="footer-buttons-grid">
+          <ion-button 
+            expand="block" 
+            fill="outline" 
+            color="primary"
+            size="large"
+            (click)="falarComConsultor()"
+            class="action-btn consultor-btn">
+            <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
+            Falar com Consultor
+          </ion-button>
+
+          <ion-button 
+            expand="block" 
+            color="success" 
+            size="large"
+            (click)="aprovarEAtivar()"
+            class="action-btn approve-btn">
+            <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+            Aprovar e Ativar
+          </ion-button>
+        </div>
 
         <ion-button 
           expand="block" 

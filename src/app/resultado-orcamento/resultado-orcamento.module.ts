@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { ResultadoOrcamentoPageRoutingModule } from './resultado-orcamento-routing.module';
 import { ResultadoOrcamentoPage } from './resultado-orcamento.page';
+import { ModalAdicionarAssistenteComponent } from './modal-adicionar-assistente.component';
 
 @NgModule({
   imports: [
@@ -12,7 +13,10 @@ import { ResultadoOrcamentoPage } from './resultado-orcamento.page';
     IonicModule,
     ResultadoOrcamentoPageRoutingModule
   ],
-  declarations: [ResultadoOrcamentoPage]
+  declarations: [
+    ResultadoOrcamentoPage,
+    ModalAdicionarAssistenteComponent
+  ]
 })
 export class ResultadoOrcamentoPageModule {}
 

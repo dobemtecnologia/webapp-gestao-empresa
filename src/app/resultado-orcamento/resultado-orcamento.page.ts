@@ -1,8 +1,13 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { OrcamentoService } from '../services/orcamento.service';
+import { PlanoService } from '../services/plano.service';
 import { OrcamentoDTO, ItemOrcamentoDTO } from '../models/orcamento.model';
-import { LoadingController, ToastController } from '@ionic/angular';
+import { LoadingController, ToastController, ModalController } from '@ionic/angular';
+import { firstValueFrom, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { Assistente } from '../models/assistente.model';
+import { ModalAdicionarAssistenteComponent } from './modal-adicionar-assistente.component';
 
 interface OrcamentoComItens {
   orcamento: OrcamentoDTO;
@@ -19,24 +24,64 @@ export class ResultadoOrcamentoPage implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private orcamentoService = inject(OrcamentoService);
+  private planoService = inject(PlanoService);
   private loadingController = inject(LoadingController);
   private toastController = inject(ToastController);
+  private modalController = inject(ModalController);
 
   // Signals para reatividade
   private _orcamentoData = signal<OrcamentoComItens | null>(null);
   private _isLoading = signal<boolean>(false);
   private _codigoHash = signal<string | null>(null);
+  private _itensEditados = signal<ItemOrcamentoDTO[]>([]);
+  private _itensIniciais = signal<ItemOrcamentoDTO[]>([]);
 
   // Computed signals
   readonly orcamento = computed(() => this._orcamentoData()?.orcamento);
-  readonly itens = computed(() => this._orcamentoData()?.itens || []);
+  readonly itens = computed(() => {
+    const itensEditados = this._itensEditados();
+    return itensEditados.length > 0 ? itensEditados : (this._orcamentoData()?.itens || []);
+  });
   readonly isLoading = computed(() => this._isLoading());
   readonly codigoHash = computed(() => this._codigoHash());
+
+  // Agrupa itens por tipo
+  readonly itensPorTipo = computed(() => {
+    const itensLista = this.itens();
+    return {
+      ASSISTENTE: itensLista.filter(i => i.tipoItem === 'ASSISTENTE'),
+      CANAL: itensLista.filter(i => i.tipoItem === 'CANAL'),
+      INFRAESTRUTURA: itensLista.filter(i => i.tipoItem === 'INFRAESTRUTURA')
+    };
+  });
+
+  // Detecta se há mudanças
+  readonly temMudancas = computed(() => {
+    const itensAtuais = this.itens();
+    const itensIniciais = this._itensIniciais();
+    
+    if (itensAtuais.length !== itensIniciais.length) return true;
+    
+    // Compara cada item
+    return itensAtuais.some(itemAtual => {
+      const itemInicial = itensIniciais.find(i => 
+        i.id === itemAtual.id || 
+        (i.referenciaId === itemAtual.referenciaId && i.tipoItem === itemAtual.tipoItem)
+      );
+      return !itemInicial || itemInicial.quantidade !== itemAtual.quantidade;
+    });
+  });
 
   // Valores calculados
   readonly totalSetup = computed(() => {
     const itens = this.itens();
     return itens.reduce((sum, item) => sum + (item.totalSetupFechado || 0), 0);
+  });
+
+  // Valor total do orçamento recalculado dinamicamente
+  readonly valorTotalFechado = computed(() => {
+    const itens = this.itens();
+    return itens.reduce((sum, item) => sum + (item.totalMensalFechado || 0), 0);
   });
 
   readonly linkCompartilhavel = computed(() => {
@@ -50,9 +95,10 @@ export class ResultadoOrcamentoPage implements OnInit {
     if (hash) {
       this._codigoHash.set(hash);
       this.carregarOrcamento();
-    } else {
+    } 
+    else {
       this.showToast('Hash do orçamento não encontrado.', 'danger');
-      this.router.navigate(['/wizard']);
+      //this.router.navigate(['/wizard']);
     }
   }
 
@@ -73,6 +119,9 @@ export class ResultadoOrcamentoPage implements OnInit {
         loading.dismiss();
         this._isLoading.set(false);
         this._orcamentoData.set(data);
+        // Salva uma cópia inicial dos itens para comparação de mudanças
+        this._itensIniciais.set(JSON.parse(JSON.stringify(data.itens || [])));
+        this._itensEditados.set([]); // Limpa itens editados ao carregar
       },
       error: (error) => {
         // Fallback: Se o endpoint customizado não existir, tenta buscar pelo hash normal
@@ -85,6 +134,8 @@ export class ResultadoOrcamentoPage implements OnInit {
                 loading.dismiss();
                 this._isLoading.set(false);
                 this._orcamentoData.set({ orcamento, itens: orcamento.itens });
+                this._itensIniciais.set(JSON.parse(JSON.stringify(orcamento.itens)));
+                this._itensEditados.set([]);
               } else {
                 // Se não tiver itens, tenta buscar pelo ID
                 if (orcamento.id) {
@@ -93,18 +144,24 @@ export class ResultadoOrcamentoPage implements OnInit {
                       loading.dismiss();
                       this._isLoading.set(false);
                       this._orcamentoData.set(data);
+                      this._itensIniciais.set(JSON.parse(JSON.stringify(data.itens || [])));
+                      this._itensEditados.set([]);
                     },
                     error: (err) => {
                       loading.dismiss();
                       this._isLoading.set(false);
                       // Usa o orçamento sem itens como fallback
                       this._orcamentoData.set({ orcamento, itens: [] });
+                      this._itensIniciais.set([]);
+                      this._itensEditados.set([]);
                     }
                   });
                 } else {
                   loading.dismiss();
                   this._isLoading.set(false);
                   this._orcamentoData.set({ orcamento, itens: [] });
+                  this._itensIniciais.set([]);
+                  this._itensEditados.set([]);
                 }
               }
             },
@@ -118,7 +175,7 @@ export class ResultadoOrcamentoPage implements OnInit {
                 errorMessage = err.error.message;
               }
               this.showToast(errorMessage, 'danger');
-              this.router.navigate(['/wizard']);
+              //this.router.navigate(['/wizard']);
             }
           });
         } else {
@@ -129,7 +186,7 @@ export class ResultadoOrcamentoPage implements OnInit {
             errorMessage = error.error.message;
           }
           this.showToast(errorMessage, 'danger');
-          this.router.navigate(['/wizard']);
+          //this.router.navigate(['/wizard']);
         }
       }
     });
@@ -181,7 +238,7 @@ export class ResultadoOrcamentoPage implements OnInit {
       case 'INFRAESTRUTURA':
         return 'server-outline';
       case 'ASSISTENTE':
-        return 'robot-outline';
+        return 'people-outline';
       case 'CANAL':
         return 'chatbubbles-outline';
       default:
@@ -194,6 +251,221 @@ export class ResultadoOrcamentoPage implements OnInit {
       style: 'currency',
       currency: 'BRL'
     }).format(valor);
+  }
+
+  // Método auxiliar para recalcular valores de um item baseado na quantidade
+  private recalcularValoresItem(item: ItemOrcamentoDTO): ItemOrcamentoDTO {
+    const precoUnitarioFechado = item.precoUnitarioFechado || 0;
+    const precoUnitarioTabela = item.precoUnitarioTabela || 0;
+    
+    // Recalcula total mensal baseado no preço unitário e quantidade
+    const totalMensalFechado = precoUnitarioFechado * item.quantidade;
+    
+    // Para setup, geralmente é um valor fixo por item, não multiplicado pela quantidade
+    // Mas se houver setup por unidade, pode ser necessário ajustar
+    // Por enquanto, mantemos o setup proporcional à quantidade se já existir
+    const setupUnitario = item.totalSetupFechado && item.quantidade > 0 
+      ? item.totalSetupFechado / item.quantidade 
+      : (item.totalSetupFechado || 0);
+    const totalSetupFechado = setupUnitario * item.quantidade;
+
+    return {
+      ...item,
+      totalMensalFechado,
+      totalSetupFechado
+    };
+  }
+
+  // Métodos de edição de itens
+  removerItem(item: ItemOrcamentoDTO) {
+    const itensAtuais = this.itens();
+    const novosItens = itensAtuais.filter(i => 
+      !(i.id === item.id && i.referenciaId === item.referenciaId && i.tipoItem === item.tipoItem)
+    );
+    this._itensEditados.set([...novosItens]);
+    this.showToast('Item removido. Clique em "Salvar Alterações" para confirmar.', 'warning');
+  }
+
+  diminuirQuantidade(item: ItemOrcamentoDTO) {
+    if (item.quantidade <= 1) {
+      this.removerItem(item);
+      return;
+    }
+
+    const itensAtuais = this.itens();
+    const novosItens = itensAtuais.map(i => {
+      if (i.id === item.id && i.referenciaId === item.referenciaId && i.tipoItem === item.tipoItem) {
+        const itemAtualizado = { ...i, quantidade: i.quantidade - 1 };
+        return this.recalcularValoresItem(itemAtualizado);
+      }
+      return i;
+    });
+    this._itensEditados.set([...novosItens]);
+  }
+
+  aumentarQuantidade(item: ItemOrcamentoDTO) {
+    const itensAtuais = this.itens();
+    const novosItens = itensAtuais.map(i => {
+      if (i.id === item.id && i.referenciaId === item.referenciaId && i.tipoItem === item.tipoItem) {
+        const itemAtualizado = { ...i, quantidade: i.quantidade + 1 };
+        return this.recalcularValoresItem(itemAtualizado);
+      }
+      return i;
+    });
+    this._itensEditados.set([...novosItens]);
+  }
+
+  async abrirModalAdicionarAssistente() {
+    // Extrai setores dos assistentes já no orçamento para filtrar assistentes disponíveis
+    // TODO: Melhorar para buscar setores diretamente do orçamento quando disponível na API
+    
+    // Por enquanto, busca todos os assistentes disponíveis
+    const modal = await this.modalController.create({
+      component: ModalAdicionarAssistenteComponent,
+      componentProps: {
+        assistentesAtuais: this.itensPorTipo().ASSISTENTE.map(i => i.referenciaId),
+        setorIds: [] // TODO: Extrair setores dos assistentes existentes
+      }
+    });
+
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+
+    if (data && data.assistente) {
+      this.adicionarAssistente(data.assistente, data.quantidade || 1);
+    }
+  }
+
+  async adicionarAssistente(assistente: Assistente, quantidade: number = 1) {
+    // Verifica se o assistente já existe
+    const itensAtuais = this.itens();
+    const assistenteExistente = itensAtuais.find(
+      i => i.tipoItem === 'ASSISTENTE' && i.referenciaId === assistente.id
+    );
+
+    let novosItens: ItemOrcamentoDTO[];
+
+    if (assistenteExistente) {
+      // Se já existe, aumenta a quantidade e recalcula valores
+      novosItens = itensAtuais.map(i => {
+        if (i.tipoItem === 'ASSISTENTE' && i.referenciaId === assistente.id) {
+          const itemAtualizado = { ...i, quantidade: i.quantidade + quantidade };
+          return this.recalcularValoresItem(itemAtualizado);
+        }
+        return i;
+      });
+    } else {
+      // Se não existe, adiciona novo item
+      // TODO: Buscar preços reais da API
+      const novoItem: ItemOrcamentoDTO = {
+        tipoItem: 'ASSISTENTE',
+        referenciaId: assistente.id,
+        descricao: assistente.nome,
+        quantidade: quantidade,
+        precoUnitarioTabela: 0, // TODO: Buscar da API
+        precoUnitarioFechado: 0, // TODO: Buscar da API
+        totalMensalFechado: 0, // TODO: Calcular
+        totalSetupFechado: 0
+      };
+      novosItens = [...itensAtuais, novoItem];
+    }
+
+    this._itensEditados.set([...novosItens]);
+    this.showToast('Assistente adicionado. Clique em "Salvar Alterações" para confirmar.', 'success');
+  }
+
+  async salvarAlteracoes() {
+    if (!this.temMudancas()) {
+      this.showToast('Nenhuma alteração para salvar.', 'warning');
+      return;
+    }
+
+    const orcamentoId = this.orcamento()?.id;
+    if (!orcamentoId) {
+      this.showToast('Erro: ID do orçamento não encontrado.', 'danger');
+      return;
+    }
+
+    const loading = await this.loadingController.create({
+      message: 'Salvando alterações...',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    try {
+      // Usa os dados do orçamento que já estão carregados na página
+      const orcamentoAtual = this.orcamento();
+      if (!orcamentoAtual) {
+        throw new Error('Orçamento não encontrado');
+      }
+
+      // Recalcula valores totais do orçamento baseado nos itens editados
+      const itensAtualizados = this.itens();
+      const valorTotalFechado = itensAtualizados.reduce(
+        (sum, item) => sum + (item.totalMensalFechado || 0), 
+        0
+      );
+      const valorTotalTabela = itensAtualizados.reduce(
+        (sum, item) => sum + (item.precoUnitarioTabela * item.quantidade || 0), 
+        0
+      );
+
+      // Atualiza os itens do orçamento e recalcula valores totais
+      const orcamentoAtualizado: OrcamentoDTO = {
+        ...orcamentoAtual,
+        itens: itensAtualizados,
+        valorTotalFechado,
+        valorTotalTabela
+      };
+
+      // Atualiza na API usando PUT no endpoint customizado com itens
+      console.log('🔄 Atualizando orçamento:', {
+        id: orcamentoId,
+        endpoint: `/api/custom/orcamentos/com-itens/${orcamentoId}`,
+        payload: orcamentoAtualizado
+      });
+
+      const orcamentoAtualizadoResponse = await firstValueFrom(
+        this.orcamentoService.update(orcamentoId, orcamentoAtualizado).pipe(
+          catchError((error) => {
+            console.error('❌ Erro ao atualizar orçamento:', error);
+            throw error;
+          })
+        )
+      );
+
+      console.log('✅ Orçamento atualizado com sucesso:', orcamentoAtualizadoResponse);
+
+      // Atualiza os dados localmente com a resposta da API
+      if (orcamentoAtualizadoResponse.itens) {
+        this._orcamentoData.set({
+          orcamento: orcamentoAtualizadoResponse,
+          itens: orcamentoAtualizadoResponse.itens
+        });
+      } else {
+        // Se a resposta não trouxer itens, atualiza apenas o orçamento
+        const currentData = this._orcamentoData();
+        if (currentData) {
+          this._orcamentoData.set({
+            ...currentData,
+            orcamento: orcamentoAtualizadoResponse
+          });
+        }
+      }
+
+      // Atualiza os itens iniciais para refletir as mudanças salvas
+      const itensSalvos = orcamentoAtualizadoResponse.itens || this.itens();
+      this._itensIniciais.set(JSON.parse(JSON.stringify(itensSalvos)));
+      this._itensEditados.set([]);
+
+      loading.dismiss();
+      this.showToast('Alterações salvas com sucesso!', 'success');
+
+    } catch (error: any) {
+      loading.dismiss();
+      console.error('Erro ao salvar alterações:', error);
+      this.showToast('Erro ao salvar alterações. Tente novamente.', 'danger');
+    }
   }
 
   private async showToast(message: string, color: 'success' | 'danger' | 'warning') {

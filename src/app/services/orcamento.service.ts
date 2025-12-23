@@ -19,8 +19,7 @@ export class OrcamentoService {
   }
 
   update(id: number, orcamento: OrcamentoDTO): Observable<OrcamentoDTO> {
-    // Tenta atualizar usando o endpoint customizado com ID (PUT)
-    // Assumindo que o backend suporta PUT no endpoint customizado com ID
+    // Atualiza usando o endpoint customizado com itens (mesmo padrão do wizard)
     return this.http.put<OrcamentoDTO>(`${this.apiUrlCustom}/${id}`, orcamento);
   }
 

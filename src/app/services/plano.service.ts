@@ -40,8 +40,12 @@ export class PlanoService {
   }
 
   getAssistentesPorSetores(setorIds: number[]): Observable<Assistente[]> {
-    const setorIdsString = setorIds.join(',');
-    const params = new HttpParams().set('setorIds', setorIdsString);
+    let params = new HttpParams();
+    setorIds.forEach(id => {
+      params = params.append('setorIds', id.toString());
+    });
+    // Adiciona eagerload para garantir que os setores do assistente venham junto
+    params = params.set('eagerload', 'true'); 
     return this.http.get<Assistente[]>(`${this.baseApiUrl}/custom/assistentes`, { params });
   }
 
