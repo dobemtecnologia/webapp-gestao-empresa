@@ -443,7 +443,7 @@ export class WizardPage implements OnInit, OnDestroy {
     const step = this.currentStep();
     
     // Adiciona resposta do usuário (Resumo do passo atual)
-    this.addUserResponseSummary(step);
+    await this.addUserResponseSummary(step);
 
     // Lógica Específica de Transição
     if (step === 4) { // Infraestrutura -> Período (pulando Volume)
@@ -493,7 +493,7 @@ export class WizardPage implements OnInit, OnDestroy {
     this.showEvaResponse(`Com certeza, ${this.wizardState.userName()}! Já preparei tudo por aqui. 📄<br>Para onde posso enviar sua proposta formal e o link de acesso exclusivo?`);
   }
 
-  private addUserResponseSummary(step: number) {
+  private async addUserResponseSummary(step: number) {
     let content = '';
     switch (step) {
       case 1: // Setores
@@ -501,9 +501,34 @@ export class WizardPage implements OnInit, OnDestroy {
         content = `Preciso de ajuda em: ${setores}.`;
         break;
       case 2: // Assistentes
-        const assistentes = this.assistants().filter(a => a.quantity > 0)
-          .map(a => `${a.quantity}x ${a.nome}`).join(', ');
-        content = `Vou precisar de: ${assistentes}.`;
+        // Busca os nomes dos assistentes da API para garantir que estão corretos
+        const assistentesAtivos = this.assistants().filter(a => a.quantity > 0);
+        if (assistentesAtivos.length > 0) {
+          try {
+            const assistentesCompletos = await firstValueFrom(
+              this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])))
+            );
+            const assistentes = assistentesAtivos
+              .map(a => {
+                const assistenteCompleto = assistentesCompletos.find(ac => ac.id === a.id);
+                const nome = assistenteCompleto?.nome && assistenteCompleto.nome.trim() !== '' 
+                  ? assistenteCompleto.nome 
+                  : (a.nome && a.nome.trim() !== '' ? a.nome : `Assistente #${a.id}`);
+                return `${a.quantity}x ${nome}`;
+              }).join(', ');
+            content = `Vou precisar de: ${assistentes}.`;
+          } catch (error) {
+            // Fallback se a busca falhar
+            const assistentes = assistentesAtivos
+              .map(a => {
+                const nome = a.nome && a.nome.trim() !== '' ? a.nome : `Assistente #${a.id}`;
+                return `${a.quantity}x ${nome}`;
+              }).join(', ');
+            content = `Vou precisar de: ${assistentes}.`;
+          }
+        } else {
+          content = 'Nenhum assistente selecionado.';
+        }
         break;
       case 3: // Canais
          content = 'Canais configurados.';
