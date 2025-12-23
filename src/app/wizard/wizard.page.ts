@@ -428,6 +428,8 @@ export class WizardPage implements OnInit, OnDestroy {
     }, 500);
   }
 
+  leadConfirmed = false;
+
   confirmEmail() {
     if (!this.isValidEmail(this.tempEmail)) {
       this.showToast('Por favor, insira um e-mail válido.', 'warning');
@@ -439,11 +441,9 @@ export class WizardPage implements OnInit, OnDestroy {
     this.wizardState.addMessage({ sender: 'user', type: 'text', content: contactInfo });
     this.scrollToBottom();
     
-    // 2. Esconde o footer (input) imediatamente e mostra "Eva digitando..."
-    this.isTyping = true;
-
-    // 3. Inicia processo de finalização (API)
-    this.finalizarOrcamento();
+    // 2. Marca que os dados de contato foram confirmados
+    this.leadConfirmed = true;
+    this.showToast('Dados de contato confirmados. Agora clique em "Gerar Proposta Oficial".', 'success');
   }
 
   async nextStep() {
@@ -496,10 +496,49 @@ export class WizardPage implements OnInit, OnDestroy {
       content: 'Quero gerar a proposta oficial.' 
     });
     
+    // Sempre que entrar no passo de contato, começa SEM confirmação
+    this.leadConfirmed = false;
     this.wizardState.setCurrentStep(8); // Passo 8: Captura de Email
     this.scrollToBottom();
 
     this.showEvaResponse(`Com certeza, ${this.wizardState.userName()}! Já preparei tudo por aqui. 📄<br>Para onde posso enviar sua proposta formal e o link de acesso exclusivo?`);
+  }
+
+  // Usuário concorda com o valor do orçamento após ver o resumo
+  onConcordarResumo() {
+    this.wizardState.addMessage({
+      sender: 'user',
+      type: 'text',
+      content: 'Concordo com o valor do orçamento.'
+    });
+    this.scrollToBottom();
+
+    // Garante que vamos pedir novamente os dados de contato
+    this.leadConfirmed = false;
+
+    // Vai para o passo de dados de contato e pergunta e-mail/telefone
+    this.wizardState.setCurrentStep(8);
+    this.showEvaResponse(
+      `Perfeito, ${this.wizardState.userName()}! 🙌<br>` +
+      `Agora me informe seu <strong>melhor e-mail</strong> e um <strong>WhatsApp</strong> para envio da proposta formal.`
+    );
+  }
+
+  // Usuário quer alterar o orçamento após ver o resumo
+  onAlterarResumo() {
+    this.wizardState.addMessage({
+      sender: 'user',
+      type: 'text',
+      content: 'Quero alterar o valor do orçamento.'
+    });
+    this.scrollToBottom();
+
+    // Volta para os passos de configuração (por exemplo, período)
+    this.wizardState.setCurrentStep(6); // Passo de período para ajustar valores
+    this.showEvaResponse(
+      `Sem problemas! 😉<br>` +
+      `Você pode ajustar o <strong>período de contratação</strong> ou voltar e alterar os assistentes, canais e infraestrutura para recalcular o orçamento.`
+    );
   }
 
   private async addUserResponseSummary(step: number) {
@@ -751,6 +790,8 @@ export class WizardPage implements OnInit, OnDestroy {
     this.tempEmail = '';
     this.tempName = '';
     this.tempPhone = ''; // Reset phone
+    this.leadConfirmed = false;
+    this.leadConfirmed = false;
     this.wizardState.reset();
     this.startChat();
   }

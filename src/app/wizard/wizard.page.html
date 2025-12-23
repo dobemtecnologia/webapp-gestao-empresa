@@ -219,18 +219,29 @@
       </div>
     }
 
-    <!-- Passo 7: Resumo (Review) - Apenas botão, resumo está no chat -->
+    <!-- Passo 7: Resumo (Review) + confirmação do valor -->
     @if (currentStep() === 7) {
       <div class="step-input final-step">
-        <ion-button 
-          expand="block" 
-          color="success" 
-          (click)="iniciarCapturaLead()"
-          [disabled]="isLoading || !resultadoSimulacao" 
-          class="action-btn final-btn">
-          <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-          Gerar Proposta Oficial
-        </ion-button>
+        <div class="success-buttons">
+          <ion-button 
+            expand="block" 
+            color="success" 
+            (click)="onConcordarResumo()" 
+            class="action-btn">
+            <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+            Concordo com o valor do orçamento
+          </ion-button>
+
+          <ion-button 
+            expand="block" 
+            fill="outline" 
+            color="warning" 
+            (click)="onAlterarResumo()" 
+            class="action-btn mt-2">
+            <ion-icon name="create-outline" slot="start"></ion-icon>
+            Quero alterar os valores
+          </ion-button>
+        </div>
       </div>
     }
 
@@ -261,19 +272,33 @@
             </ion-input>
           </ion-item>
 
-          <ion-button 
-            expand="block" 
-            (click)="confirmEmail()" 
-            [disabled]="isLoading || !tempEmail" 
-            class="action-btn">
-            @if (isLoading) {
-              <ion-spinner name="crescent" color="light"></ion-spinner>
-              <span class="ml-2">Enviando...</span>
-            } @else {
-              Enviar e Finalizar
-              <ion-icon name="send" slot="end"></ion-icon>
-            }
-          </ion-button>
+          @if (!leadConfirmed) {
+            <ion-button 
+              expand="block" 
+              (click)="confirmEmail()" 
+              [disabled]="isLoading || !tempEmail" 
+              class="action-btn">
+              Confirmar dados de contato
+              <ion-icon name="checkmark-circle-outline" slot="end"></ion-icon>
+            </ion-button>
+          }
+
+          @if (leadConfirmed) {
+            <ion-button 
+              expand="block" 
+              color="success"
+              (click)="finalizarOrcamento()" 
+              [disabled]="isLoading" 
+              class="action-btn mt-2">
+              @if (isLoading) {
+                <ion-spinner name="crescent" color="light"></ion-spinner>
+                <span class="ml-2">Gerando Proposta...</span>
+              } @else {
+                Gerar Proposta Oficial
+                <ion-icon name="document-text-outline" slot="end"></ion-icon>
+              }
+            </ion-button>
+          }
         </div>
       </div>
     }
