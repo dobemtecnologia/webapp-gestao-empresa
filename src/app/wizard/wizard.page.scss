@@ -496,61 +496,158 @@ ion-footer.chat-input-area {
   }
 }
 
-.sectors-grid-mini {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  // Mobile: Altura menor
-  max-height: 35vh;
+.sectors-list-container {
+  max-height: calc(35vh - 80px);
   min-height: 150px;
   overflow-y: auto;
+  border-radius: 12px;
+  background: #000;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
   
-  // Tablet e Desktop: Altura maior
+  // Tablet: Altura média
   @media (min-width: 768px) {
-    max-height: 45vh;
+    max-height: calc(45vh - 100px);
     min-height: 200px;
   }
   
+  // Desktop: Altura maior
   @media (min-width: 1024px) {
-    max-height: 50vh;
+    max-height: calc(50vh - 120px);
     min-height: 250px;
   }
-
-  .sector-chip {
-    background: #2c2c2e;
-    color: #fff;
-    padding: 8px 16px;
-    border-radius: 20px;
+  
+  // Telas baixas
+  @media (max-height: 600px) {
+    max-height: calc(25vh - 80px);
+    min-height: 120px;
+  }
+  
+  .loading-container {
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-    flex: 0 1 auto;
-    min-width: fit-content;
-    
-    // Mobile: Chips menores
-    @media (max-width: 767px) {
-      padding: 6px 12px;
-      font-size: 0.9rem;
-    }
+    padding: 2rem;
+  }
+}
 
-    ion-icon {
-      font-size: 1.2rem;
-      color: var(--ion-color-primary);
+.sectors-list {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  
+  .sector-item {
+    --background: #1c1c1e;
+    --background-hover: #2c2c2e;
+    --color: #ffffff;
+    --border-color: #333;
+    --padding-start: 1rem;
+    --padding-end: 1rem;
+    --inner-padding-end: 0;
+    --min-height: 56px;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+    transition: all 0.2s ease;
+    
+    // Mobile: Altura menor
+    @media (max-width: 767px) {
+      --min-height: 52px;
+      --padding-start: 0.75rem;
+      --padding-end: 0.75rem;
+    }
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    &:hover {
+      --background: #2c2c2e;
+    }
+    
+    &.selected {
+      --background: rgba(var(--ion-color-primary-rgb), 0.15);
+      --background-hover: rgba(var(--ion-color-primary-rgb), 0.25);
+      border-left: 3px solid var(--ion-color-primary);
+      --padding-start: calc(1rem - 3px);
       
       @media (max-width: 767px) {
-        font-size: 1rem;
+        --padding-start: calc(0.75rem - 3px);
+      }
+      
+      .sector-icon {
+        color: var(--ion-color-primary);
+      }
+      
+      ion-label h3 {
+        color: var(--ion-color-primary);
+        font-weight: 600;
       }
     }
-
-    &.selected {
-      background: rgba(var(--ion-color-primary-rgb), 0.2);
-      border-color: var(--ion-color-primary);
-      color: var(--ion-color-primary);
+    
+    ion-checkbox {
+      margin-right: 0;
+      --size: 20px;
+      --checkbox-background-checked: var(--ion-color-primary);
+      --border-color-checked: var(--ion-color-primary);
+      flex-shrink: 0;
+      
+      @media (max-width: 767px) {
+        --size: 18px;
+      }
     }
+    
+    .sector-icon-wrapper {
+      display: flex;
+      align-items: center;
+      margin-left: 0.5rem;
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+      
+      @media (max-width: 767px) {
+        margin-left: 0.4rem;
+        margin-right: 0.5rem;
+      }
+    }
+    
+    .sector-icon {
+      font-size: 1.5rem;
+      color: #888;
+      transition: color 0.2s;
+      
+      @media (max-width: 767px) {
+        font-size: 1.3rem;
+      }
+    }
+    
+    ion-label {
+      flex: 1;
+      
+      h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 400;
+        color: #ffffff;
+        transition: all 0.2s;
+        
+        @media (max-width: 767px) {
+          font-size: 0.95rem;
+        }
+      }
+    }
+  }
+  
+  // Custom Scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
 
@@ -626,9 +723,9 @@ ion-footer.chat-input-area {
     min-height: 120px;
   }
   
-  .sectors-grid-mini {
+  .sectors-list-container {
     max-height: calc(25vh - 80px);
-    min-height: 100px;
+    min-height: 120px;
   }
 }
 
@@ -639,9 +736,9 @@ ion-footer.chat-input-area {
     min-height: 100px;
   }
   
-  .sectors-grid-mini {
+  .sectors-list-container {
     max-height: calc(20vh - 80px);
-    min-height: 80px;
+    min-height: 100px;
   }
   
   .chat-input-area {

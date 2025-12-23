@@ -410,7 +410,9 @@ export class WizardPage implements OnInit, OnDestroy {
   }
 
   isSetorSelected(setor: SetorDTO): boolean {
-    return this.selectedSectors().some(s => s.id === setor.id);
+    const selected = this.selectedSectors();
+    const isSelected = selected.some(s => s.id === setor.id);
+    return isSelected;
   }
 
   toggleSetor(setor: SetorDTO) {

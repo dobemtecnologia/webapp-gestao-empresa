@@ -74,19 +74,36 @@
           <span>Selecione os setores</span>
         </div>
         
-        <div class="sectors-grid-mini">
+        <div class="sectors-list-container">
           @if (carregandoSetores) {
-            <ion-spinner></ion-spinner>
+            <div class="loading-container">
+              <ion-spinner></ion-spinner>
+            </div>
           } @else {
-            @for (setor of setoresDisponiveis; track setor.id) {
-              <div 
-                class="sector-chip" 
-                [class.selected]="isSetorSelected(setor)"
-                (click)="toggleSetor(setor)">
-                <ion-icon [name]="setor.icone || 'business'"></ion-icon>
-                <span>{{ setor.nome }}</span>
-              </div>
-            }
+            <ion-list class="sectors-list">
+              @for (setor of setoresDisponiveis; track setor.id) {
+                <ion-item 
+                  class="sector-item"
+                  [class.selected]="isSetorSelected(setor)"
+                  (click)="toggleSetor(setor)">
+                  <ion-checkbox 
+                    slot="start" 
+                    [checked]="isSetorSelected(setor)"
+                    (ionChange)="$event.stopPropagation()"
+                    (click)="$event.stopPropagation()">
+                  </ion-checkbox>
+                  <div class="sector-icon-wrapper" slot="start">
+                    <ion-icon 
+                      [name]="setor.icone || 'business'" 
+                      class="sector-icon">
+                    </ion-icon>
+                  </div>
+                  <ion-label>
+                    <h3>{{ setor.nome }}</h3>
+                  </ion-label>
+                </ion-item>
+              }
+            </ion-list>
           }
         </div>
 
