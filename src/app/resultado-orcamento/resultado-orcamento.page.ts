@@ -169,7 +169,7 @@ export class ResultadoOrcamentoPage implements OnInit {
     const hash = this.codigoHash();
     if (hash) {
       this.router.navigate(['/wizard'], { 
-        queryParams: { hash } 
+        queryParams: { hash, action: 'edit' } 
       });
     } else {
       this.showToast('Hash da proposta não encontrado.', 'warning');

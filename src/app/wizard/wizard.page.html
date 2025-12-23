@@ -312,5 +312,39 @@
       </div>
     }
 
+    <!-- Passo 99: Menu de Edição -->
+    @if (currentStep() === 99) {
+      <div class="step-input edit-menu">
+         <div class="input-header">
+           <span>O que deseja alterar?</span>
+         </div>
+         <div class="edit-options-grid">
+            <ion-button (click)="selecionarOpcaoEdicao(6)" fill="outline" class="edit-opt-btn">
+               <ion-icon slot="start" name="calendar-outline"></ion-icon>
+               Período
+            </ion-button>
+            <ion-button (click)="selecionarOpcaoEdicao(4)" fill="outline" class="edit-opt-btn">
+               <ion-icon slot="start" name="server-outline"></ion-icon>
+               Infraestrutura
+            </ion-button>
+            <ion-button (click)="selecionarOpcaoEdicao(2)" fill="outline" class="edit-opt-btn">
+               <ion-icon slot="start" name="people-outline"></ion-icon>
+               Assistentes
+            </ion-button>
+            <ion-button (click)="selecionarOpcaoEdicao(3)" fill="outline" class="edit-opt-btn">
+               <ion-icon slot="start" name="chatbubbles-outline"></ion-icon>
+               Canais
+            </ion-button>
+         </div>
+         
+         <div class="edit-actions mt-3">
+            <ion-button expand="block" (click)="selecionarOpcaoEdicao(7)" class="action-btn">
+               Ver Resultado Atualizado
+               <ion-icon slot="end" name="arrow-forward"></ion-icon>
+            </ion-button>
+         </div>
+      </div>
+    }
+
   </div>
 </ion-footer>

@@ -746,3 +746,40 @@ ion-footer.chat-input-area {
     padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.5rem));
   }
 }
+
+// Menu de Edição
+.edit-menu {
+  width: 100%;
+  
+  .edit-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    
+    .edit-opt-btn {
+      --border-radius: 12px;
+      --border-width: 1px;
+      margin: 0;
+      height: 50px;
+      font-size: 0.9rem;
+      text-transform: none;
+      --color: #fff;
+      --border-color: #444;
+      
+      ion-icon {
+        font-size: 1.2rem;
+        margin-right: 0.5rem;
+      }
+      
+      // Ajuste para telas muito pequenas
+      @media (max-width: 360px) {
+        font-size: 0.8rem;
+        ion-icon {
+          font-size: 1rem;
+          margin-right: 0.3rem;
+        }
+      }
+    }
+  }
+}

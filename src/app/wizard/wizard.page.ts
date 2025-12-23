@@ -68,6 +68,10 @@ export class WizardPage implements OnInit, OnDestroy {
   tokensOpenAi = this.wizardState.tokensOpenAi;
   selectedPeriod = this.wizardState.selectedPeriod;
 
+  // Modo de Edição
+  isEditingMode = false;
+  readonly EDIT_MENU_STEP = 99;
+
   // Getter para compatibilidade com o template
   get orcamentoFinalizadoHash() {
     return this.wizardState.orcamentoHash();
@@ -79,6 +83,7 @@ export class WizardPage implements OnInit, OnDestroy {
     
     // Verifica se há hash na query string para edição
     const hashUrl = this.route.snapshot.queryParams['hash'];
+    const action = this.route.snapshot.queryParams['action'];
     
     // Cria ou recupera o Session ID logo no início
     const sessionId = this.firebaseService.getOrCreateSessionId();
@@ -96,6 +101,12 @@ export class WizardPage implements OnInit, OnDestroy {
       // CASO 1: Refresh na mesma proposta (Hash URL == Hash Sessão)
       if (hashUrl && hashSessao === hashUrl) {
         console.log('🔄 Refresh detectado na mesma proposta. Mantendo histórico e estado.');
+        
+        if (action === 'edit') {
+          this.iniciarModoEdicao();
+          return;
+        }
+
         this.scrollToBottom();
         
         if (this.wizardState.userName()) {
@@ -113,7 +124,7 @@ export class WizardPage implements OnInit, OnDestroy {
       // CASO 2: Navegação para outra proposta (Hash URL != Hash Sessão)
       if (hashUrl && hashSessao !== hashUrl) {
         console.log('🔀 Hash diferente detectado ou nova edição. Carregando da API...');
-        await this.carregarOrcamentoParaEdicao(hashUrl);
+        await this.carregarOrcamentoParaEdicao(hashUrl, action === 'edit');
         return;
       }
 
@@ -134,7 +145,7 @@ export class WizardPage implements OnInit, OnDestroy {
       // CASO 4: Sem sessão anterior
       if (hashUrl) {
         console.log('🔍 Hash encontrado na URL (sem sessão local). Carregando orçamento...');
-        await this.carregarOrcamentoParaEdicao(hashUrl);
+        await this.carregarOrcamentoParaEdicao(hashUrl, action === 'edit');
       } else {
         console.log('🆕 Nenhuma sessão encontrada. Iniciando nova conversa...');
         this.wizardState.reset();
@@ -473,6 +484,18 @@ export class WizardPage implements OnInit, OnDestroy {
     
     // Adiciona resposta do usuário (Resumo do passo atual)
     await this.addUserResponseSummary(step);
+
+    // Lógica de Edição: Retorna ao menu após editar um passo
+    if (this.isEditingMode) {
+      // Se estiver nos passos de configuração, recalcula simulação
+      if ([2, 3, 4, 6].includes(step)) {
+        await this.simularPlano();
+      }
+      
+      this.wizardState.setCurrentStep(this.EDIT_MENU_STEP);
+      this.showEvaResponse('Alteração salva com sucesso! Deseja ajustar mais algo ou ver o resultado final?');
+      return;
+    }
 
     // Lógica Específica de Transição
     if (step === 4) { // Infraestrutura -> Período (pulando Volume)
@@ -814,7 +837,7 @@ export class WizardPage implements OnInit, OnDestroy {
     this.startChat();
   }
 
-  async carregarOrcamentoParaEdicao(hash: string) {
+  async carregarOrcamentoParaEdicao(hash: string, isEditMode = false) {
     const loading = await this.loadingController.create({
       message: 'Carregando proposta para edição...',
       spinner: 'crescent'
@@ -896,35 +919,40 @@ export class WizardPage implements OnInit, OnDestroy {
         this.wizardState.setBaseMonthlyValue(orcamento.valorTotalTabela || orcamento.valorTotalFechado);
       }
 
-      // Inicia o chat com mensagem de boas-vindas para edição
-      this.wizardState.setUserName(orcamento.nomeProspect || 'Cliente');
-      
-      // Define o passo inicial baseado no que foi restaurado
-      // Se já tem setores, vai para assistentes; se já tem assistentes, vai para canais, etc
-      let stepInicial = 1; // Padrão: seleção de setores
-      if (this.wizardState.selectedSectors().length > 0) {
-        stepInicial = 2; // Já tem setores, vai para assistentes
-        if (this.wizardState.assistants().filter(a => a.quantity > 0).length > 0) {
-          stepInicial = 3; // Já tem assistentes, vai para canais
-          if (this.wizardState.channels().filter(c => c.enabled).length > 0) {
-            stepInicial = 4; // Já tem canais, vai para infraestrutura
-            if (this.wizardState.infrastructure()) {
-              stepInicial = 6; // Já tem tudo, vai para período
+      if (isEditMode) {
+        this.iniciarModoEdicao();
+      } else {
+        // Inicia o chat com mensagem de boas-vindas para edição
+        this.wizardState.setUserName(orcamento.nomeProspect || 'Cliente');
+        
+        // Define o passo inicial baseado no que foi restaurado
+        // Se já tem setores, vai para assistentes; se já tem assistentes, vai para canais, etc
+        let stepInicial = 1; // Padrão: seleção de setores
+        if (this.wizardState.selectedSectors().length > 0) {
+          stepInicial = 2; // Já tem setores, vai para assistentes
+          if (this.wizardState.assistants().filter(a => a.quantity > 0).length > 0) {
+            stepInicial = 3; // Já tem assistentes, vai para canais
+            if (this.wizardState.channels().filter(c => c.enabled).length > 0) {
+              stepInicial = 4; // Já tem canais, vai para infraestrutura
+              if (this.wizardState.infrastructure()) {
+                stepInicial = 6; // Já tem tudo, vai para período
+              }
             }
           }
         }
+        
+        this.wizardState.setCurrentStep(stepInicial);
+
+        // Adiciona mensagem inicial
+        this.wizardState.addMessage({
+          sender: 'eva',
+          type: 'text',
+          content: `Olá novamente, <strong>${orcamento.nomeProspect || 'Cliente'}</strong>! 👋<br>Carreguei sua proposta anterior. Você pode revisar e editar os itens abaixo.`
+        });
+        
+        this.scrollToBottom();
       }
-      
-      this.wizardState.setCurrentStep(stepInicial);
 
-      // Adiciona mensagem inicial
-      this.wizardState.addMessage({
-        sender: 'eva',
-        type: 'text',
-        content: `Olá novamente, <strong>${orcamento.nomeProspect || 'Cliente'}</strong>! 👋<br>Carreguei sua proposta anterior. Você pode revisar e editar os itens abaixo.`
-      });
-
-      this.scrollToBottom();
       this.showToast('Proposta carregada. Você pode editar os itens.', 'success');
 
     } catch (error: any) {
@@ -933,6 +961,59 @@ export class WizardPage implements OnInit, OnDestroy {
       this.showToast('Erro ao carregar proposta. Tente novamente.', 'danger');
       this.router.navigate(['/wizard']);
     }
+  }
+
+  iniciarModoEdicao() {
+    this.isEditingMode = true;
+    this.wizardState.setCurrentStep(this.EDIT_MENU_STEP);
+    this.scrollToBottom();
+    
+    // Pequeno delay para garantir que a UI atualizou
+    setTimeout(() => {
+      this.showEvaResponse(`Olá, vi que você deseja fazer alguma alteração na sua proposta. O que você gostaria de ajustar?`);
+    }, 500);
+  }
+
+  selecionarOpcaoEdicao(stepDestino: number) {
+    this.wizardState.setCurrentStep(stepDestino);
+    
+    let mensagem = '';
+    switch(stepDestino) {
+        case 6: mensagem = 'Alterar Período'; break;
+        case 4: mensagem = 'Alterar Infraestrutura'; break;
+        case 2: mensagem = 'Alterar Assistentes'; break;
+        case 3: mensagem = 'Alterar Canais'; break;
+        case 7: mensagem = 'Ver Resultado'; break;
+        default: mensagem = 'Editar';
+    }
+    
+    this.wizardState.addMessage({ sender: 'user', type: 'text', content: mensagem });
+    
+    if (stepDestino === 7) {
+        // Se for ver resultado, re-calcula simulação
+        this.simularPlano().then(() => {
+             // Redireciona para pagina de resultado se já tiver hash
+             const hash = this.wizardState.orcamentoHash();
+             if (hash) {
+                 this.router.navigate(['/resultado-orcamento'], { queryParams: { hash } });
+             } else {
+                 // Fallback para passo de resumo
+                 this.wizardState.setCurrentStep(7);
+             }
+        });
+    }
+
+    this.scrollToBottom();
+  }
+
+  cancelarEdicao() {
+      const hash = this.wizardState.orcamentoHash();
+      if (hash) {
+        this.router.navigate(['/resultado-orcamento'], { queryParams: { hash } });
+      } else {
+        // Se não tiver hash (impossível se veio de edição), reseta
+        this.resetWizard();
+      }
   }
 
   private async mapearItensParaEstado(itens: ItemOrcamentoDTO[]) {
