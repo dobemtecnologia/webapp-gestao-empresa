@@ -13,7 +13,8 @@
     "test": "ng test",
     "lint": "ng lint",
     "deploy": "npm run build:prod && firebase deploy --only hosting",
-    "deploy:all": "npm run build:prod && firebase deploy"
+    "deploy:all": "npm run build:prod && firebase deploy",
+    "fetch-cnae": "node IBGE/fetch-cnae.js"
   },
   "private": true,
   "dependencies": {
