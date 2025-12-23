@@ -39,6 +39,12 @@ export class PlanoService {
     return this.http.get<Assistente[]>(`${this.baseApiUrl}/assistentes`, { params });
   }
 
+  getAssistentesPorSetores(setorIds: number[]): Observable<Assistente[]> {
+    const setorIdsString = setorIds.join(',');
+    const params = new HttpParams().set('setorIds', setorIdsString);
+    return this.http.get<Assistente[]>(`${this.baseApiUrl}/custom/assistentes`, { params });
+  }
+
   getCanals(sort: string = 'id,asc'): Observable<Canal[]> {
     const params = new HttpParams().set('sort', sort);
     return this.http.get<Canal[]>(`${this.baseApiUrl}/canals`, { params });

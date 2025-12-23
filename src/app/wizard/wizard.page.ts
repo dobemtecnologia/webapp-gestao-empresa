@@ -841,6 +841,10 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
   }
 
   resetWizard() {
+    // Limpa parâmetros da URL
+    this.router.navigate(['/wizard']);
+    
+    this.isEditingMode = false;
     this.tempEmail = '';
     this.tempName = '';
     this.tempPhone = ''; // Reset phone
@@ -1098,9 +1102,30 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
     }
 
     // Atualiza o estado do wizard
-    setoresSelecionados.forEach(setor => {
-      this.wizardState.toggleSector(setor);
-    });
+    // Usa setSelectedSectors para garantir que o estado seja exato, sem toggles acidentais
+    // IMPORTANTE: Antes de definir os setores, garante que todos tenham assistentes carregados
+    const setoresComAssistentes = await Promise.all(
+      setoresSelecionados.map(async (setor) => {
+        // Se o setor já tem assistentes, retorna como está
+        if (setor.assistentes && setor.assistentes.length > 0) {
+          return setor;
+        }
+        
+        // Caso contrário, busca o setor completo da API com eagerload
+        try {
+          const setorCompleto = await firstValueFrom(
+            this.setorService.getSetorById(setor.id, true).pipe(catchError(() => of(setor)))
+          );
+          // Se encontrou assistentes, retorna o setor completo; senão, retorna o original
+          return (setorCompleto.assistentes && setorCompleto.assistentes.length > 0) ? setorCompleto : setor;
+        } catch (error) {
+          console.warn(`Erro ao buscar assistentes do setor ${setor.id}:`, error);
+          return setor;
+        }
+      })
+    );
+
+    this.wizardState.setSelectedSectors(setoresComAssistentes);
 
     this.wizardState.setAssistants(assistentesEstado);
     this.wizardState.setChannels(canaisEstado);

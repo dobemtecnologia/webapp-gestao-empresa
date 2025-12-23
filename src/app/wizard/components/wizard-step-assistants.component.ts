@@ -1,7 +1,10 @@
 import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { WizardStateService } from '../../services/wizard-state.service';
 import { PlanoService } from '../../services/plano.service';
+import { SetorService } from '../../services/setor.service';
 import { Assistente } from '../../models/assistente.model';
+import { firstValueFrom, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-wizard-step-assistants',
@@ -12,6 +15,7 @@ import { Assistente } from '../../models/assistente.model';
 export class WizardStepAssistantsComponent implements OnInit {
   wizardState = inject(WizardStateService);
   planoService = inject(PlanoService);
+  setorService = inject(SetorService);
   private cdr = inject(ChangeDetectorRef);
 
   // Usa o computed signal que retorna assistentes consolidados dos setores selecionados
@@ -19,11 +23,84 @@ export class WizardStepAssistantsComponent implements OnInit {
   selectedSectors = this.wizardState.selectedSectors;
   assistants = this.wizardState.assistants;
 
-  ngOnInit() {
+  async ngOnInit() {
+    // Verifica se os setores estão vazios ou sem assistentes
+    const setores = this.selectedSectors();
+    if (setores.length === 0 || setores.some(s => !s.assistentes || s.assistentes.length === 0)) {
+      console.log('⚠️ Setores vazios ou sem assistentes. Buscando da API...');
+      await this.carregarSetoresComAssistentes();
+    }
+    
     // Não precisa mais carregar da API, usa os assistentes dos setores selecionados
     this.inicializarAssistantes();
     // Se os assistentes vierem sem nome completo, busca os detalhes
     this.enriquecerAssistentesComDetalhes();
+  }
+
+  private async carregarSetoresComAssistentes() {
+    try {
+      // Pega os IDs dos setores que já estão selecionados no estado
+      const setoresAtuais = this.selectedSectors();
+      const setoresIds = setoresAtuais.map(s => s.id);
+
+      if (setoresIds.length === 0) {
+        console.warn('⚠️ Nenhum setor selecionado no estado');
+        return;
+      }
+
+      console.log(`🔍 Buscando assistentes para ${setoresIds.length} setor(es):`, setoresIds);
+
+      // Busca os assistentes vinculados aos setores usando o endpoint customizado
+      const assistentes = await firstValueFrom(
+        this.planoService.getAssistentesPorSetores(setoresIds).pipe(catchError(() => of([])))
+      );
+
+      console.log(`✅ ${assistentes.length} assistente(s) encontrado(s) para os setores informados`);
+
+      // Cria um mapa de setorId -> assistentes[] para associar os assistentes aos setores corretos
+      const assistentesPorSetor = new Map<number, any[]>();
+
+      assistentes.forEach((assistente: any) => {
+        // Os assistentes têm uma propriedade 'setors' ou 'setores' que indica a quais setores pertencem
+        const setoresDoAssistente = (assistente.setors || assistente.setores || []) as any[];
+        
+        setoresDoAssistente.forEach((setorRef: any) => {
+          const setorId = typeof setorRef === 'object' ? setorRef.id : setorRef;
+          
+          // Só adiciona se o setor estiver na lista de setores selecionados
+          if (setoresIds.includes(setorId)) {
+            if (!assistentesPorSetor.has(setorId)) {
+              assistentesPorSetor.set(setorId, []);
+            }
+            assistentesPorSetor.get(setorId)!.push(assistente);
+          }
+        });
+      });
+
+      // Atualiza cada setor com seus assistentes correspondentes
+      const setoresAtualizados = setoresAtuais.map(setor => {
+        const assistentesDoSetor = assistentesPorSetor.get(setor.id) || [];
+        
+        if (assistentesDoSetor.length > 0) {
+          console.log(`✅ Setor ${setor.nome} (ID: ${setor.id}) atualizado com ${assistentesDoSetor.length} assistente(s)`);
+          return {
+            ...setor,
+            assistentes: assistentesDoSetor
+          };
+        } else {
+          console.warn(`⚠️ Setor ${setor.nome} (ID: ${setor.id}) não possui assistentes vinculados`);
+          return setor;
+        }
+      });
+
+      // Atualiza o estado com os setores completos (com assistentes)
+      this.wizardState.setSelectedSectors(setoresAtualizados);
+      this.cdr.detectChanges();
+
+      console.log('✅ Setores atualizados com assistentes carregados');
+    } catch (error) {
+      console.error('❌ Erro ao carregar assistentes por setores:', error);
+    }
   }
 
   private enriquecerAssistentesComDetalhes() {
