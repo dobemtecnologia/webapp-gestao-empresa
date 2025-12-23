@@ -98,6 +98,13 @@ export class WizardPage implements OnInit, OnDestroy {
       if (this.wizardState.userName()) {
         this.tempName = this.wizardState.userName();
       }
+      
+      // Se restaurou em um passo avançado, garante que a simulação esteja pronta
+      if (this.wizardState.currentStep() >= 6 && !this.resultadoSimulacao) {
+        console.log('🔄 Restaurando simulação em background...');
+        this.simularPlano().then(() => console.log('✅ Simulação restaurada.'));
+      }
+
     } else {
       // Não há sessão - começa do zero
       console.log('🆕 Nenhuma sessão encontrada. Iniciando nova conversa...');
@@ -466,6 +473,12 @@ export class WizardPage implements OnInit, OnDestroy {
     // Avança o passo
     this.wizardState.nextStep();
     this.scrollToBottom();
+
+    // Salva dados de contato se tiver passado pelo passo 8
+    if (step === 8) {
+      this.wizardState.setUserEmail(this.tempEmail);
+      if (this.tempPhone) this.wizardState.setUserPhone(this.tempPhone);
+    }
 
     // Trigger da próxima pergunta da Eva
     this.triggerNextEvaQuestion(this.currentStep());
@@ -993,6 +1006,11 @@ export class WizardPage implements OnInit, OnDestroy {
 
   async finalizarOrcamento() {
     console.log('🚀 Iniciando finalizarOrcamento...');
+    
+    // Garante que os dados de contato estão no estado para salvamento no Firebase
+    if (this.tempEmail) this.wizardState.setUserEmail(this.tempEmail);
+    if (this.tempPhone) this.wizardState.setUserPhone(this.tempPhone);
+
     console.log('📊 Estado atual:', {
       resultadoSimulacao: !!this.resultadoSimulacao,
       selectedPeriod: this.selectedPeriod(),
@@ -1001,9 +1019,20 @@ export class WizardPage implements OnInit, OnDestroy {
       userName: this.wizardState.userName()
     });
 
+    // Verificação e recuperação automática da simulação se necessário
+    if (!this.resultadoSimulacao && this.wizardState.infrastructure()) {
+      console.log('🔄 Simulação ausente na finalização. Tentando recalcular...');
+      const sucesso = await this.simularPlano();
+      if (!sucesso) {
+        console.error('❌ Falha ao recalcular simulação.');
+      } else {
+        console.log('✅ Simulação recalculada com sucesso!');
+      }
+    }
+
     if (!this.resultadoSimulacao || !this.selectedPeriod()) {
-      console.warn('⚠️ Simulação incompleta');
-      this.showToast('Simulação incompleta.', 'warning');
+      console.warn('⚠️ Simulação incompleta mesmo após tentativa de recálculo');
+      this.showToast('Não foi possível gerar a proposta. Por favor, revise as configurações.', 'warning');
       this.isTyping = false; // Restaura UI em caso de erro
       return;
     }

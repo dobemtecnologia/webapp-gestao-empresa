@@ -5,12 +5,28 @@ import { environment } from '../../environments/environment';
 import { WizardState } from '../models/wizard-state.model';
 import { ChatMessage } from './wizard-state.service';
 
+export interface UserChoices {
+  name?: string;
+  email?: string;
+  phone?: string;
+  company?: {
+    cnpj: string;
+    razaoSocial: string;
+    nomeFantasia?: string;
+  };
+  assistants?: { id: number; nome: string; quantity: number }[];
+  selectedSectors?: string[];
+  infrastructure?: number | null;
+  selectedPeriod?: string | null;
+}
+
 export interface WizardSessionData {
   sessionId: string;
   lastUpdated: Date;
   currentState: WizardState;
   chatHistory: ChatMessage[];
-  userName?: string;
+  userChoices?: UserChoices; // Dados estruturados separados
+  userName?: string; // Mantido para compatibilidade
   email?: string;
   phone?: string;
 }
@@ -48,7 +64,7 @@ export class WizardFirebaseService {
   async saveSessionState(
     state: WizardState, 
     chatHistory: ChatMessage[], 
-    userData?: { name?: string, email?: string, phone?: string }
+    userChoices?: UserChoices
   ) {
     const sessionId = this.getOrCreateSessionId();
     const docRef = doc(this.firestore, this.COLLECTION_NAME, sessionId);
@@ -59,13 +75,13 @@ export class WizardFirebaseService {
       lastUpdated: new Date(),
       currentState: JSON.parse(JSON.stringify(state)),
       chatHistory: JSON.parse(JSON.stringify(chatHistory)),
-      ...userData
+      userChoices: userChoices ? JSON.parse(JSON.stringify(userChoices)) : undefined
     };
 
     try {
-      console.log('Tentando salvar sessão no Firebase...', sessionId);
+      // console.log('Salva sessão no Firebase...', sessionId);
       await setDoc(docRef, dataToSave, { merge: true });
-      console.log('Sessão salva com sucesso no Firebase!');
+      // console.log('Sessão salva com sucesso!');
     } catch (error) {
       console.error('Erro CRÍTICO ao salvar sessão no Firebase:', error);
     }

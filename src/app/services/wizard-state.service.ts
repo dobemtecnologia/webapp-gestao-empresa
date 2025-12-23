@@ -36,6 +36,8 @@ export class WizardStateService {
   // Novos Signals para o Chat
   private _chatHistory = signal<ChatMessage[]>([]);
   private _userName = signal<string>('');
+  private _userEmail = signal<string>('');
+  private _userPhone = signal<string>('');
 
   private isRestoring = false; // Flag para evitar salvar durante restauração
 
@@ -47,11 +49,27 @@ export class WizardStateService {
       
       const currentState = this.state();
       const currentHistory = this._chatHistory();
-      const currentName = this._userName();
+      const name = this._userName();
+      const email = this._userEmail();
+      const phone = this._userPhone();
+
+      // Monta objeto de escolhas estruturadas
+      const userChoices = {
+        name,
+        email,
+        phone,
+        company: currentState.empresaData,
+        assistants: currentState.assistants
+          .filter(a => a.quantity > 0)
+          .map(a => ({ id: a.id, nome: a.nome, quantity: a.quantity })),
+        selectedSectors: currentState.selectedSectors.map(s => s.nome),
+        infrastructure: currentState.infrastructure,
+        selectedPeriod: currentState.selectedPeriod
+      };
 
       // Salva se houver dados relevantes
-      if (currentHistory.length > 0 || currentName || currentState.currentStep > 0) {
-        this.firebaseService.saveSessionState(currentState, currentHistory, { name: currentName });
+      if (currentHistory.length > 0 || name || currentState.currentStep > 0) {
+        this.firebaseService.saveSessionState(currentState, currentHistory, userChoices);
       }
     });
   }
@@ -59,6 +77,8 @@ export class WizardStateService {
   // Getters computados
   readonly chatHistory = computed(() => this._chatHistory());
   readonly userName = computed(() => this._userName());
+  readonly userEmail = computed(() => this._userEmail());
+  readonly userPhone = computed(() => this._userPhone());
 
   readonly currentStep = computed(() => this.state().currentStep);
   readonly selectedSectors = computed(() => this.state().selectedSectors);
@@ -132,9 +152,16 @@ export class WizardStateService {
           this._chatHistory.set(chatHistory);
         }
         
-        // Restaura nome do usuário
-        if (sessionData.userName) {
-          this._userName.set(sessionData.userName);
+        // Restaura nome do usuário e dados de contato
+        if (sessionData.userName) this._userName.set(sessionData.userName);
+        if (sessionData.email) this._userEmail.set(sessionData.email);
+        if (sessionData.phone) this._userPhone.set(sessionData.phone);
+
+        // Compatibilidade com nova estrutura userChoices
+        if (sessionData.userChoices) {
+          if (sessionData.userChoices.name) this._userName.set(sessionData.userChoices.name);
+          if (sessionData.userChoices.email) this._userEmail.set(sessionData.userChoices.email);
+          if (sessionData.userChoices.phone) this._userPhone.set(sessionData.userChoices.phone);
         }
         
         console.log('Sessão restaurada com sucesso!');
@@ -159,6 +186,14 @@ export class WizardStateService {
 
   setUserName(name: string) {
     this._userName.set(name);
+  }
+
+  setUserEmail(email: string) {
+    this._userEmail.set(email);
+  }
+
+  setUserPhone(phone: string) {
+    this._userPhone.set(phone);
   }
 
   // Ações para atualizar o estado do Wizard
