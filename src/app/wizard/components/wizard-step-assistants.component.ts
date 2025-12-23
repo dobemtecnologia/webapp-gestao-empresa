@@ -94,10 +94,13 @@ export class WizardStepAssistantsComponent implements OnInit {
       });
 
       // Atualiza o estado com os setores completos (com assistentes)
+      // IMPORTANTE: As quantidades dos assistentes já estão preservadas no estado (this.assistants())
+      // porque o método inicializarAssistantes() só adiciona assistentes novos se não existirem
+      // Portanto, as quantidades do orçamento ou Firebase são mantidas automaticamente
       this.wizardState.setSelectedSectors(setoresAtualizados);
       this.cdr.detectChanges();
 
-      console.log('✅ Setores atualizados com assistentes carregados');
+      console.log('✅ Setores atualizados com assistentes carregados. As quantidades existentes no estado são preservadas.');
     } catch (error) {
       console.error('❌ Erro ao carregar assistentes por setores:', error);
     }
