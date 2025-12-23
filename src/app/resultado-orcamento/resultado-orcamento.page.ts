@@ -165,10 +165,15 @@ export class ResultadoOrcamentoPage implements OnInit {
   }
 
   editarProposta() {
-    // Volta para o wizard preservando o estado
-    this.router.navigate(['/wizard'], { 
-      queryParams: { hash: this.codigoHash() } 
-    });
+    // Volta para o wizard com o hash para carregar e editar
+    const hash = this.codigoHash();
+    if (hash) {
+      this.router.navigate(['/wizard'], { 
+        queryParams: { hash } 
+      });
+    } else {
+      this.showToast('Hash da proposta não encontrado.', 'warning');
+    }
   }
 
   getIconeTipoItem(tipoItem: string): string {

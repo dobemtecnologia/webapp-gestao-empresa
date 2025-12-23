@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, inject, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { WizardStateService, ChatMessage } from '../services/wizard-state.service';
 import { WizardFirebaseService } from '../services/wizard-firebase.service';
 import { PlanoService } from '../services/plano.service';
@@ -32,6 +32,7 @@ export class WizardPage implements OnInit, OnDestroy {
   wizardState = inject(WizardStateService);
   private firebaseService = inject(WizardFirebaseService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private planoService = inject(PlanoService);
   private orcamentoService = inject(OrcamentoService);
   private setorService = inject(SetorService);
@@ -71,8 +72,13 @@ export class WizardPage implements OnInit, OnDestroy {
     await this.menuController.enable(false);
     await this.loginAutomatico();
     
-    // Carrega setores primeiro (necessário para renderizar)
-    this.carregarSetores();
+    // Verifica se há hash na query string para edição
+    const hash = this.route.snapshot.queryParams['hash'];
+    if (hash) {
+      console.log('🔍 Hash encontrado na URL. Carregando orçamento para edição...', hash);
+      await this.carregarOrcamentoParaEdicao(hash);
+      return; // Não restaura sessão do Firebase se estiver editando
+    }
     
     // Cria ou recupera o Session ID logo no início (garante persistência do navegador)
     // Isso garante que mesmo novos usuários tenham um ID único associado ao navegador
@@ -374,6 +380,8 @@ export class WizardPage implements OnInit, OnDestroy {
               });
               
               setTimeout(() => {
+                // Carrega setores apenas quando for realmente para a seleção manual
+                this.carregarSetores();
                 this.wizardState.setCurrentStep(1);
                 this.scrollToBottom();
               }, 2000);
@@ -412,6 +420,7 @@ export class WizardPage implements OnInit, OnDestroy {
     this.showToast(message, 'warning');
     
     // Vai para seleção manual de setores
+    this.carregarSetores(); // Carrega setores somente neste momento
     this.wizardState.setCurrentStep(1);
     this.scrollToBottom();
     setTimeout(() => {
@@ -744,6 +753,214 @@ export class WizardPage implements OnInit, OnDestroy {
     this.tempPhone = ''; // Reset phone
     this.wizardState.reset();
     this.startChat();
+  }
+
+  async carregarOrcamentoParaEdicao(hash: string) {
+    const loading = await this.loadingController.create({
+      message: 'Carregando proposta para edição...',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    try {
+      // Busca o orçamento com itens
+      const data = await firstValueFrom(
+        this.orcamentoService.getByHashComItens(hash).pipe(
+          catchError(async (error) => {
+            // Fallback: tenta buscar pelo hash normal
+            const orcamento = await firstValueFrom(
+              this.orcamentoService.getByHash(hash).pipe(catchError(() => of(null)))
+            );
+            if (orcamento && orcamento.id) {
+              const dataComItens = await firstValueFrom(
+                this.orcamentoService.getByIdComItens(orcamento.id).pipe(catchError(() => of({ orcamento, itens: [] })))
+              );
+              return dataComItens;
+            }
+            throw error;
+          })
+        )
+      );
+
+      loading.dismiss();
+
+      if (!data || !data.orcamento) {
+        this.showToast('Orçamento não encontrado.', 'danger');
+        this.router.navigate(['/wizard']);
+        return;
+      }
+
+      const orcamento = data.orcamento;
+      const itens = data.itens || [];
+
+      console.log('📦 Orçamento carregado para edição:', orcamento);
+      console.log('📋 Itens do orçamento:', itens);
+
+      // Restaura nome do usuário
+      if (orcamento.nomeProspect) {
+        this.wizardState.setUserName(orcamento.nomeProspect);
+        this.tempName = orcamento.nomeProspect;
+      }
+
+      // Restaura email e telefone
+      if (orcamento.emailProspect) {
+        this.tempEmail = orcamento.emailProspect;
+      }
+      if (orcamento.telefoneProspect) {
+        this.tempPhone = orcamento.telefoneProspect;
+      }
+
+      // Restaura dados da empresa se disponível
+      if (orcamento.empresaDadosCnpj) {
+        this.wizardState.setEmpresaData({
+          cnpj: orcamento.empresaDadosCnpj.cnpj,
+          razaoSocial: orcamento.empresaDadosCnpj.razaoSocial,
+          nomeFantasia: orcamento.empresaDadosCnpj.nomeFantasia,
+          situacaoCadastral: orcamento.empresaDadosCnpj.situacaoCadastral
+        });
+      }
+
+      // Salva o hash para uso posterior
+      this.orcamentoFinalizadoHash = hash;
+
+      // Mapeia itens para o estado (restaura setores, assistentes, canais, infraestrutura)
+      await this.mapearItensParaEstado(itens);
+
+      // Restaura infraestrutura (se não foi mapeada pelos itens)
+      if (orcamento.infraestrutura?.id && !this.wizardState.infrastructure()) {
+        this.wizardState.setInfrastructure(orcamento.infraestrutura.id);
+      }
+
+      // Restaura período se houver (precisa calcular baseado no desconto)
+      // Por enquanto, vamos apenas restaurar o valor base
+      if (orcamento.valorTotalFechado) {
+        this.wizardState.setBaseMonthlyValue(orcamento.valorTotalTabela || orcamento.valorTotalFechado);
+      }
+
+      // Inicia o chat com mensagem de boas-vindas para edição
+      this.wizardState.setUserName(orcamento.nomeProspect || 'Cliente');
+      
+      // Define o passo inicial baseado no que foi restaurado
+      // Se já tem setores, vai para assistentes; se já tem assistentes, vai para canais, etc
+      let stepInicial = 1; // Padrão: seleção de setores
+      if (this.wizardState.selectedSectors().length > 0) {
+        stepInicial = 2; // Já tem setores, vai para assistentes
+        if (this.wizardState.assistants().filter(a => a.quantity > 0).length > 0) {
+          stepInicial = 3; // Já tem assistentes, vai para canais
+          if (this.wizardState.channels().filter(c => c.enabled).length > 0) {
+            stepInicial = 4; // Já tem canais, vai para infraestrutura
+            if (this.wizardState.infrastructure()) {
+              stepInicial = 6; // Já tem tudo, vai para período
+            }
+          }
+        }
+      }
+      
+      this.wizardState.setCurrentStep(stepInicial);
+
+      // Adiciona mensagem inicial
+      this.wizardState.addMessage({
+        sender: 'eva',
+        type: 'text',
+        content: `Olá novamente, <strong>${orcamento.nomeProspect || 'Cliente'}</strong>! 👋<br>Carreguei sua proposta anterior. Você pode revisar e editar os itens abaixo.`
+      });
+
+      this.scrollToBottom();
+      this.showToast('Proposta carregada. Você pode editar os itens.', 'success');
+
+    } catch (error: any) {
+      loading.dismiss();
+      console.error('❌ Erro ao carregar orçamento para edição:', error);
+      this.showToast('Erro ao carregar proposta. Tente novamente.', 'danger');
+      this.router.navigate(['/wizard']);
+    }
+  }
+
+  private async mapearItensParaEstado(itens: ItemOrcamentoDTO[]) {
+    // Busca todos os setores e assistentes para mapear corretamente
+    const [setores, assistentes, canals] = await Promise.all([
+      firstValueFrom(this.setorService.getAllSetors('id,asc', 0, 100, true).pipe(catchError(() => of([])))),
+      firstValueFrom(this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])))),
+      firstValueFrom(this.planoService.getCanals('id,asc').pipe(catchError(() => of([]))))
+    ]);
+
+    const setoresSelecionados: SetorDTO[] = [];
+    const assistentesEstado: { id: number; nome: string; quantity: number; sector: string }[] = [];
+    const canaisEstado: { id: number; nome: string; enabled: boolean }[] = [];
+    const assistantChannels: { assistantId: number; channelId: number; enabled: boolean }[] = [];
+
+    // Processa cada item
+    for (const item of itens) {
+      if (item.tipoItem === 'INFRAESTRUTURA') {
+        // Restaura infraestrutura diretamente
+        if (item.referenciaId) {
+          this.wizardState.setInfrastructure(item.referenciaId);
+        }
+        continue;
+      }
+
+      if (item.tipoItem === 'ASSISTENTE') {
+        const assistente: any = assistentes.find(a => a.id === item.referenciaId);
+        if (assistente) {
+          // Busca os setores do assistente (a API retorna com 'setors')
+          const setoresDoAssistente = (assistente.setors || assistente.setores || []) as any[];
+          setoresDoAssistente.forEach((setorRef: any) => {
+            const setorId = typeof setorRef === 'object' ? setorRef.id : setorRef;
+            const setorCompleto = setores.find(s => s.id === setorId);
+            if (setorCompleto && !setoresSelecionados.find(s => s.id === setorCompleto.id)) {
+              setoresSelecionados.push(setorCompleto);
+            }
+          });
+
+          // Adiciona assistente ao estado
+          const setorNome = setoresDoAssistente.length > 0 
+            ? (typeof setoresDoAssistente[0] === 'object' ? setoresDoAssistente[0].nome : 'Geral')
+            : 'Geral';
+          
+          assistentesEstado.push({
+            id: assistente.id,
+            nome: assistente.nome || `Assistente #${assistente.id}`,
+            quantity: item.quantidade,
+            sector: setorNome
+          });
+        }
+      }
+
+      if (item.tipoItem === 'CANAL') {
+        const canal = canals.find(c => c.id === item.referenciaId);
+        if (canal) {
+          canaisEstado.push({
+            id: canal.id,
+            nome: canal.nome || `Canal #${canal.id}`,
+            enabled: true
+          });
+
+          // Associa canais aos assistentes (todos os assistentes ativos recebem o canal)
+          assistentesEstado.forEach(assistente => {
+            assistantChannels.push({
+              assistantId: assistente.id,
+              channelId: canal.id,
+              enabled: true
+            });
+          });
+        }
+      }
+    }
+
+    // Atualiza o estado do wizard
+    setoresSelecionados.forEach(setor => {
+      this.wizardState.toggleSector(setor);
+    });
+
+    this.wizardState.setAssistants(assistentesEstado);
+    this.wizardState.setChannels(canaisEstado);
+    this.wizardState.setAssistantChannels(assistantChannels);
+
+    console.log('✅ Estado restaurado:', {
+      setores: setoresSelecionados.length,
+      assistentes: assistentesEstado.length,
+      canais: canaisEstado.length
+    });
   }
 
   verPropostaCompleta() {
