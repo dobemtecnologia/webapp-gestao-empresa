@@ -1,0 +1,754 @@
+{
+  "info": {
+    "name": "API Orçamentos - Testes E2E",
+    "description": "Collection completa de testes end-to-end para a API de Orçamentos",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "api-orcamentos-e2e"
+  },
+  "item": [
+    {
+      "name": "1. Autenticação",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has id_token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id_token');",
+                  "    pm.environment.set('auth_token', jsonData.id_token);",
+                  "});",
+                  "",
+                  "pm.test(\"Token is not empty\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id_token).to.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/authenticate/context",
+              "host": ["{{base_url}}"],
+              "path": ["api", "authenticate", "context"]
+            }
+          }
+        },
+        {
+          "name": "Verificar Autenticação",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/authenticate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "authenticate"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Buscar Dados",
+      "item": [
+        {
+          "name": "Buscar Infraestruturas",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/infraestruturas?sort=id,asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "infraestruturas"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "id,asc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "if (pm.response.json().length > 0) {",
+                  "    pm.environment.set('infraestrutura_id', pm.response.json()[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Setores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/setors?sort=id,asc&page=0&size=100&eagerload=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "setors"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "id,asc"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "100"
+                },
+                {
+                  "key": "eagerload",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "var setores = Array.isArray(jsonData) ? jsonData : jsonData.content || [];",
+                  "",
+                  "pm.test(\"Response contains setores\", function () {",
+                  "    pm.expect(setores).to.be.an('array');",
+                  "});",
+                  "",
+                  "if (setores.length > 0) {",
+                  "    pm.environment.set('setor_id', setores[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Assistentes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/assistentes?sort=id,asc&eagerload=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "assistentes"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "id,asc"
+                },
+                {
+                  "key": "eagerload",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "if (pm.response.json().length > 0) {",
+                  "    pm.environment.set('assistente_id', pm.response.json()[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Assistentes por Setores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/custom/assistentes?setorIds={{setor_id}}&eagerload=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custom", "assistentes"],
+              "query": [
+                {
+                  "key": "setorIds",
+                  "value": "{{setor_id}}",
+                  "description": "ID do setor"
+                },
+                {
+                  "key": "eagerload",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Canais",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/canals?sort=id,asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "canals"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "id,asc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.json().length > 0) {",
+                  "    pm.environment.set('canal_id', pm.response.json()[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Períodos de Contratação",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/periodo-contratacaos?sort=id,asc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "periodo-contratacaos"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "id,asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar Vendedores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vendedors?sort=id,asc&page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "vendedors"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "id,asc"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "var vendedores = Array.isArray(jsonData) ? jsonData : jsonData.content || [];",
+                  "",
+                  "var vendedorSistema = vendedores.find(v => v.tipo === 'SISTEMA_IA');",
+                  "if (vendedorSistema) {",
+                  "    pm.environment.set('vendedor_id', vendedorSistema.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar CNPJ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/custom/cnpj/46418343000171",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custom", "cnpj", "46418343000171"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Simulação",
+      "item": [
+        {
+          "name": "Simular Geração de Plano",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has valorMensalTotal\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('valorMensalTotal');",
+                  "});",
+                  "",
+                  "pm.test(\"Response has itens array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('itens');",
+                  "    pm.expect(jsonData.itens).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomePlano\": \"Plano Teste E2E\",\n  \"itens\": [\n    {\n      \"tipoItem\": \"INFRAESTRUTURA\",\n      \"referenciaId\": {{infraestrutura_id}},\n      \"quantidade\": 1\n    },\n    {\n      \"tipoItem\": \"ASSISTENTE\",\n      \"referenciaId\": {{assistente_id}},\n      \"quantidade\": 2\n    },\n    {\n      \"tipoItem\": \"CANAL\",\n      \"referenciaId\": {{canal_id}},\n      \"quantidade\": 1\n    }\n  ],\n  \"consumoEstimado\": {\n    \"tokensOpenAi\": 1000000,\n    \"mensagensWhatsapp\": 1000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/custom/planos/simular-geracao",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custom", "planos", "simular-geracao"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Orçamentos",
+      "item": [
+        {
+          "name": "Criar Orçamento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 or 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has id and codigoHash\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('codigoHash');",
+                  "    ",
+                  "    pm.environment.set('orcamento_id', jsonData.id);",
+                  "    pm.environment.set('orcamento_hash', jsonData.codigoHash);",
+                  "});",
+                  "",
+                  "pm.test(\"Hash is not empty\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.codigoHash).to.not.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RASCUNHO\",\n  \"valorTotalTabela\": 5000.00,\n  \"valorTotalMinimo\": 0,\n  \"valorTotalFechado\": 4500.00,\n  \"percentualDescontoAplicado\": 10.0,\n  \"nomeProspect\": \"Cliente Teste E2E\",\n  \"emailProspect\": \"teste@example.com\",\n  \"telefoneProspect\": \"(91) 99999-9999\",\n  \"infraestrutura\": {\n    \"id\": {{infraestrutura_id}}\n  },\n  \"vendedor\": {\n    \"id\": {{vendedor_id}}\n  },\n  \"itens\": [\n    {\n      \"tipoItem\": \"INFRAESTRUTURA\",\n      \"referenciaId\": {{infraestrutura_id}},\n      \"descricao\": \"Infraestrutura Teste\",\n      \"quantidade\": 1,\n      \"precoUnitarioTabela\": 1000.00,\n      \"precoUnitarioFechado\": 1000.00,\n      \"totalMensalFechado\": 1000.00,\n      \"totalSetupFechado\": 500.00\n    },\n    {\n      \"tipoItem\": \"ASSISTENTE\",\n      \"referenciaId\": {{assistente_id}},\n      \"descricao\": \"Assistente Teste\",\n      \"quantidade\": 2,\n      \"precoUnitarioTabela\": 1500.00,\n      \"precoUnitarioFechado\": 1500.00,\n      \"totalMensalFechado\": 3000.00,\n      \"totalSetupFechado\": 0.00\n    },\n    {\n      \"tipoItem\": \"CANAL\",\n      \"referenciaId\": {{canal_id}},\n      \"descricao\": \"Canal Teste\",\n      \"quantidade\": 1,\n      \"precoUnitarioTabela\": 500.00,\n      \"precoUnitarioFechado\": 500.00,\n      \"totalMensalFechado\": 500.00,\n      \"totalSetupFechado\": 0.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/custom/orcamentos/com-itens",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custom", "orcamentos", "com-itens"]
+            }
+          }
+        },
+        {
+          "name": "Buscar Orçamento por Hash",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/custom/orcamentos/hash/{{orcamento_hash}}/com-itens",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custom", "orcamentos", "hash", "{{orcamento_hash}}", "com-itens"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has orcamento and itens\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('orcamento');",
+                  "    pm.expect(jsonData).to.have.property('itens');",
+                  "    pm.expect(jsonData.itens).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar Orçamento por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orcamentos/{{orcamento_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orcamentos", "{{orcamento_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Atualizar Orçamento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Orçamento foi atualizado\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.nomeProspect).to.include('Atualizado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{orcamento_id}},\n  \"status\": \"RASCUNHO\",\n  \"valorTotalTabela\": 5500.00,\n  \"valorTotalFechado\": 4950.00,\n  \"percentualDescontoAplicado\": 10.0,\n  \"nomeProspect\": \"Cliente Teste E2E Atualizado\",\n  \"emailProspect\": \"teste@example.com\",\n  \"telefoneProspect\": \"(91) 99999-9999\",\n  \"infraestrutura\": {\n    \"id\": {{infraestrutura_id}}\n  },\n  \"vendedor\": {\n    \"id\": {{vendedor_id}}\n  },\n  \"itens\": [\n    {\n      \"tipoItem\": \"ASSISTENTE\",\n      \"referenciaId\": {{assistente_id}},\n      \"descricao\": \"Assistente Teste\",\n      \"quantidade\": 3,\n      \"precoUnitarioTabela\": 1500.00,\n      \"precoUnitarioFechado\": 1500.00,\n      \"totalMensalFechado\": 4500.00,\n      \"totalSetupFechado\": 0.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/custom/orcamentos/com-itens/{{orcamento_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custom", "orcamentos", "com-itens", "{{orcamento_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Listar Todos os Orçamentos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/orcamentos?sort=id,desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "orcamentos"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "id,desc"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Testes de Erro",
+      "item": [
+        {
+          "name": "Login com Credenciais Inválidas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"senha_errada\",\n  \"rememberMe\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/authenticate/context",
+              "host": ["{{base_url}}"],
+              "path": ["api", "authenticate", "context"]
+            }
+          }
+        },
+        {
+          "name": "Buscar Orçamento com Hash Inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/custom/orcamentos/hash/hash_invalido_123/com-itens",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custom", "orcamentos", "hash", "hash_invalido_123", "com-itens"]
+            }
+          }
+        },
+        {
+          "name": "Criar Orçamento sem Itens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 or 422\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RASCUNHO\",\n  \"valorTotalTabela\": 0,\n  \"valorTotalFechado\": 0,\n  \"nomeProspect\": \"Cliente Teste\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/custom/orcamentos/com-itens",
+              "host": ["{{base_url}}"],
+              "path": ["api", "custom", "orcamentos", "com-itens"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:9000",
+      "type": "string"
+    }
+  ]
+}
+

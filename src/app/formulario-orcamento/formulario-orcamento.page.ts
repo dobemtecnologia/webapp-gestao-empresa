@@ -529,6 +529,7 @@ export class FormularioOrcamentoPage implements OnInit {
         if (response.codigoHash) {
           this.hashProposta = response.codigoHash;
         }
+       
       } else {
         // Cria novo orçamento
         const response = await firstValueFrom(
@@ -558,6 +559,7 @@ export class FormularioOrcamentoPage implements OnInit {
         position: 'top'
       });
       await toast.present();
+      this.verPropostaCompleta();
 
     } catch (error: any) {
       loading.dismiss();
@@ -581,6 +583,9 @@ export class FormularioOrcamentoPage implements OnInit {
   verPropostaCompleta() {
     if (this.hashProposta) {
       this.router.navigate(['/resultado-orcamento'], { queryParams: { hash: this.hashProposta } });
+
+      //window.location.href = `/resultado-orcamento?hash=${this.hashProposta}`;
+
     }
   }
 
