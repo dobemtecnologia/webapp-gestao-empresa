@@ -54,12 +54,21 @@ export class FormularioOrcamentoPage implements OnInit {
   private menuController = inject(MenuController);
   private cdr = inject(ChangeDetectorRef);
 
-  ngOnInit() {
+  async ngOnInit() {
     this.menuController.enable(false);
     this.loginAutomatico();
     this.inicializarFormulario();
-    this.preencherDadosMockEmDev();
-    this.verificarModoEdicao();
+    
+    // Verificar se há hash na URL antes de preencher dados mock
+    const params = await firstValueFrom(this.route.queryParams);
+    const hash = params['hash'];
+    
+    // Só preenche dados mock se não houver hash (não está carregando orçamento existente)
+    if (!hash) {
+      this.preencherDadosMockEmDev();
+    }
+    
+    await this.verificarModoEdicao();
     
     // Atualizar validação quando o formulário mudar
     this.formulario.valueChanges.subscribe(() => {
@@ -149,8 +158,9 @@ export class FormularioOrcamentoPage implements OnInit {
     const hash = params['hash'];
     const action = params['action'];
 
-    if (hash && action === 'edit') {
-      this.isEditingMode = true;
+    // Carrega o orçamento se houver hash (com ou sem action=edit)
+    if (hash) {
+      this.isEditingMode = action === 'edit';
       await this.carregarOrcamentoParaEdicao(hash);
     }
   }
@@ -194,20 +204,58 @@ export class FormularioOrcamentoPage implements OnInit {
         nome: orcamento.nomeProspect || '',
         email: orcamento.emailProspect || '',
         telefone: orcamento.telefoneProspect || '',
-        infrastructure: orcamento.infraestrutura?.id || null,
-        selectedPeriod: null // Será calculado baseado no desconto
+        infrastructure: orcamento.infraestrutura?.id || null
       });
 
-      if (orcamento.empresaDadosCnpj) {
+      // Buscar período baseado no desconto aplicado
+      const percentualDesconto = orcamento.percentualDescontoAplicado;
+      if (percentualDesconto && percentualDesconto > 0) {
+        const periodos = await firstValueFrom(
+          this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([])))
+        );
+        const periodoEncontrado = periodos.find(p => 
+          p.ativo && 
+          p.tipoDesconto === 'PERCENTUAL' && 
+          Math.abs(p.valorDesconto - percentualDesconto) < 0.01
+        );
+        if (periodoEncontrado) {
+          this.formulario.patchValue({ selectedPeriod: periodoEncontrado.codigo });
+        }
+      }
+
+      // Preencher dados da empresa (pode vir em empresa ou empresaDadosCnpj)
+      // A API pode retornar empresa com campos completos ou apenas empresaDadosCnpj
+      const empresa = orcamento.empresa as any;
+      const empresaDadosCnpj = orcamento.empresaDadosCnpj;
+      
+      // Verifica se tem CNPJ em empresa ou empresaDadosCnpj
+      const cnpjOriginal = (empresa?.cnpj || empresaDadosCnpj?.cnpj) as string | undefined;
+      
+      if (cnpjOriginal) {
+        // Formatar CNPJ se necessário (pode vir sem formatação)
+        const cnpjLimpo = cnpjOriginal.replace(/\D/g, '');
+        let cnpjFormatado = cnpjOriginal;
+        
+        // Se o CNPJ não estiver formatado, formatar
+        if (cnpjLimpo.length === 14) {
+          if (!cnpjFormatado.includes('.')) {
+            cnpjFormatado = cnpjLimpo.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+          }
+        }
+        
+        // Preencher CNPJ formatado no campo principal e nos dados da empresa
         this.formulario.patchValue({
-          cnpj: orcamento.empresaDadosCnpj.cnpj || '',
+          cnpj: cnpjFormatado,
           empresaData: {
-            cnpj: orcamento.empresaDadosCnpj.cnpj || '',
-            razaoSocial: orcamento.empresaDadosCnpj.razaoSocial || '',
-            nomeFantasia: orcamento.empresaDadosCnpj.nomeFantasia || '',
-            situacaoCadastral: orcamento.empresaDadosCnpj.situacaoCadastral || ''
+            cnpj: cnpjOriginal, // Mantém o CNPJ original (sem formatação) nos dados da empresa
+            razaoSocial: empresa?.razaoSocial || empresaDadosCnpj?.razaoSocial || '',
+            nomeFantasia: empresa?.nomeFantasia || empresaDadosCnpj?.nomeFantasia || '',
+            situacaoCadastral: empresa?.status || empresaDadosCnpj?.situacaoCadastral || 'ATIVA'
           }
         });
+        
+        // Força a detecção de mudanças para atualizar a UI
+        this.cdr.detectChanges();
       }
 
       this.orcamentoId = orcamento.id;
@@ -231,9 +279,131 @@ export class FormularioOrcamentoPage implements OnInit {
   }
 
   private async mapearItensParaFormulario(itens: ItemOrcamentoDTO[]) {
-    // Implementar mapeamento similar ao Wizard
-    // Por enquanto, placeholder
-    console.log('Mapeando itens para formulário:', itens);
+    try {
+      // Separar itens por tipo
+      const itensInfraestrutura = itens.filter(i => i.tipoItem === 'INFRAESTRUTURA');
+      const itensAssistentes = itens.filter(i => i.tipoItem === 'ASSISTENTE');
+      const itensCanais = itens.filter(i => i.tipoItem === 'CANAL');
+
+      // Mapear infraestrutura
+      if (itensInfraestrutura.length > 0) {
+        const infraId = itensInfraestrutura[0].referenciaId;
+        this.formulario.patchValue({ infrastructure: infraId });
+      }
+
+      let assistentesFormatados: any[] = [];
+      let setoresFormatados: any[] = [];
+
+      // Mapear setores e assistentes
+      if (itensAssistentes.length > 0) {
+        const assistentesIds = new Set<number>();
+        const setoresIds = new Set<number>();
+
+        // Coletar IDs dos assistentes
+        itensAssistentes.forEach(item => assistentesIds.add(item.referenciaId));
+
+        // Buscar detalhes dos assistentes para obter os setores
+        const assistentes = await firstValueFrom(
+          this.planoService.getAssistentes('id,asc', true).pipe(catchError(() => of([])))
+        );
+
+        const assistentesSelecionados = assistentes.filter((a: any) => assistentesIds.has(a.id));
+        
+        // Extrair setores dos assistentes
+        assistentesSelecionados.forEach((assistente: any) => {
+          const setoresDoAssistente = assistente.setors || assistente.setores || [];
+          setoresDoAssistente.forEach((setor: any) => {
+            const setorId = typeof setor === 'object' ? setor.id : setor;
+            if (setorId) setoresIds.add(setorId);
+          });
+        });
+
+        // Buscar setores completos
+        if (setoresIds.size > 0) {
+          const setores = await firstValueFrom(
+            this.setorService.getAllSetors('id,asc', 0, 100, true).pipe(catchError(() => of([])))
+          );
+          const setoresSelecionados = setores.filter((s: any) => setoresIds.has(s.id));
+          
+          // Buscar assistentes por setores para ter a estrutura completa
+          const setoresComAssistentes = await Promise.all(
+            Array.from(setoresIds).map(async (setorId) => {
+              const assistentesDoSetor = await firstValueFrom(
+                this.planoService.getAssistentesPorSetores([setorId]).pipe(catchError(() => of([])))
+              );
+              return {
+                id: setorId,
+                assistentes: assistentesDoSetor.filter((a: any) => assistentesIds.has(a.id))
+              };
+            })
+          );
+
+          // Mapear setores com assistentes
+          setoresFormatados = setoresSelecionados.map((setor: any) => {
+            const setorComAssistentes = setoresComAssistentes.find(s => s.id === setor.id);
+            return {
+              ...setor,
+              assistentes: setorComAssistentes?.assistentes || []
+            };
+          });
+
+          this.formulario.patchValue({ setores: setoresFormatados });
+
+          // Mapear assistentes com quantidades
+          assistentesFormatados = itensAssistentes.map(item => {
+            const assistente = assistentesSelecionados.find((a: any) => a.id === item.referenciaId);
+            const setorDoAssistente = setoresFormatados.find(s => 
+              s.assistentes?.some((a: any) => a.id === item.referenciaId)
+            );
+            
+            return {
+              id: item.referenciaId,
+              nome: assistente?.nome || `Assistente ${item.referenciaId}`,
+              quantity: item.quantidade || 0,
+              sector: setorDoAssistente?.nome || 'Setor'
+            };
+          });
+
+          this.formulario.patchValue({ assistentes: assistentesFormatados });
+        }
+      }
+
+      // Mapear canais
+      if (itensCanais.length > 0 && assistentesFormatados.length > 0) {
+        const canais = await firstValueFrom(
+          this.planoService.getCanals('id,asc').pipe(catchError(() => of([])))
+        );
+
+        const canaisFormatados = canais.map((canal: any) => ({
+          id: canal.id,
+          nome: canal.nome
+        }));
+
+        // Mapear assistantChannels baseado nos canais e assistentes
+        const assistantChannels: Array<{ assistantId: number; channelId: number; enabled: boolean }> = [];
+        const canaisIds = new Set(itensCanais.map(i => i.referenciaId));
+        
+        // Para cada assistente ativo, habilitar os canais que estão nos itens
+        assistentesFormatados.forEach((assistente: any) => {
+          canaisIds.forEach(channelId => {
+            assistantChannels.push({
+              assistantId: assistente.id,
+              channelId: channelId,
+              enabled: true
+            });
+          });
+        });
+
+        this.formulario.patchValue({ 
+          canais: canaisFormatados,
+          assistantChannels 
+        });
+      }
+
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.error('Erro ao mapear itens para formulário:', error);
+    }
   }
 
   // Navegação do Stepper
