@@ -1,6 +1,149 @@
 <div class="canais-container">
   <h3>Configure os Canais</h3>
   <p class="subtitle">Selecione os canais de comunicação para cada assistente</p>
-  <ion-text color="medium">Em desenvolvimento...</ion-text>
+
+  @if (carregandoCanals) {
+    <div class="loading-container">
+      <ion-spinner></ion-spinner>
+      <p>Carregando canais...</p>
+    </div>
+  } @else if (!hasActiveAssistants()) {
+    <div class="no-data">
+      <ion-text color="warning">
+        <p>Nenhum assistente selecionado. Volte ao passo anterior para selecionar assistentes.</p>
+      </ion-text>
+    </div>
+  } @else {
+    <div class="assistant-channels">
+      @for (assistant of getActiveAssistants(); track assistant.id + assistant.sector) {
+        <div class="assistant-row">
+          <div class="assistant-info">
+            <h3>{{ getAssistantName(assistant) }}</h3>
+            <p class="assistant-meta">
+              @if (assistant.sector) {
+                <ion-chip size="small" color="primary">
+                  <ion-label>{{ assistant.sector }}</ion-label>
+                </ion-chip>
+              }
+              <span class="quantity-badge">Quantidade: {{ assistant.quantity }}</span>
+            </p>
+          </div>
+          <div class="assistant-channels-grid">
+            <h4 class="channels-title">Selecione os canais para este assistente:</h4>
+            @for (canal of canals; track canal.id) {
+              <div class="channel-toggle" (click)="toggleAssistantChannel(assistant.id, canal.id)">
+                <ion-icon [name]="getChannelIcon(canal.nome)" class="channel-icon"></ion-icon>
+                <span class="channel-name">{{ canal.nome }}</span>
+                <ion-toggle
+                  [checked]="isChannelEnabledForAssistant(assistant.id, canal.id)"
+                  (ionChange)="toggleAssistantChannel(assistant.id, canal.id); $event.stopPropagation()">
+                </ion-toggle>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
 </div>
 
+<style>
+.canais-container {
+  padding: 16px;
+}
+
+.subtitle {
+  color: var(--ion-color-medium);
+  margin-bottom: 20px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.no-data {
+  padding: 40px;
+  text-align: center;
+}
+
+.assistant-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.assistant-row {
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--ion-color-light);
+}
+
+.assistant-info {
+  margin-bottom: 16px;
+}
+
+.assistant-info h3 {
+  margin: 0 0 8px 0;
+  color: var(--ion-color-primary);
+  font-weight: 600;
+}
+
+.assistant-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quantity-badge {
+  background: var(--ion-color-primary);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.9em;
+}
+
+.channels-title {
+  font-size: 1em;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: var(--ion-color-dark);
+}
+
+.assistant-channels-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.channel-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.channel-toggle:hover {
+  background-color: var(--ion-color-light);
+}
+
+.channel-icon {
+  font-size: 24px;
+  color: var(--ion-color-primary);
+}
+
+.channel-name {
+  flex: 1;
+  font-weight: 500;
+}
+</style>
