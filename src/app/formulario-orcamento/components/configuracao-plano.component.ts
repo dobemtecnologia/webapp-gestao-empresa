@@ -14,6 +14,7 @@ export class ConfiguracaoPlanoComponent {
   @Output() canaisChange = new EventEmitter<{ canais: any[]; assistantChannels: any[] }>();
   @Output() infrastructureChange = new EventEmitter<number>();
   @Output() periodoChange = new EventEmitter<string>();
+  @Output() nextMainStep = new EventEmitter<void>();
 
   currentSubStep = 1; // 1: Setores, 2: Assistentes, 3: Canais, 4: Infraestrutura, 5: Período
   totalSubSteps = 5;
@@ -21,6 +22,9 @@ export class ConfiguracaoPlanoComponent {
   nextSubStep() {
     if (this.currentSubStep < this.totalSubSteps) {
       this.currentSubStep++;
+    } else {
+      // Se estiver no último sub-step, avança para o próximo step principal
+      this.nextMainStep.emit();
     }
   }
 

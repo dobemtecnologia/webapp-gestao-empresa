@@ -1,6 +1,119 @@
-<div class="assistentes-container">
+<div class="assistantes-container">
   <h3>Selecione os Assistentes</h3>
   <p class="subtitle">Configure a quantidade de assistentes por setor</p>
-  <ion-text color="medium">Em desenvolvimento...</ion-text>
+
+  @if (carregando) {
+    <div class="loading-container">
+      <ion-spinner></ion-spinner>
+      <p>Carregando assistentes...</p>
+    </div>
+  } @else if (setoresComAssistentes.length === 0) {
+    <div class="no-data">
+      <ion-text color="warning">
+        <p>Selecione pelo menos um setor no passo anterior para ver os assistentes disponíveis.</p>
+      </ion-text>
+    </div>
+  } @else {
+    <div class="assistants-list">
+      @for (item of setoresComAssistentes; track item.setor.id) {
+        @if (item.assistentes && item.assistentes.length > 0) {
+          <div class="sector-section">
+            <h4>{{ item.setor.nome }}</h4>
+            @for (assistente of item.assistentes; track assistente.id) {
+              @if (assistente.ativo !== false) {
+                <ion-item class="assistant-item">
+                  <ion-label>
+                    <h3>{{ assistente.nome }}</h3>
+                    @if (assistente.descricao) {
+                      <p>{{ assistente.descricao }}</p>
+                    }
+                  </ion-label>
+                  <div class="quantity-controls" slot="end">
+                    <ion-button 
+                      fill="clear" 
+                      size="small"
+                      (click)="decrementQuantity(assistente.id, item.setor.nome); $event.stopPropagation()"
+                      [disabled]="getQuantity(assistente.id, item.setor.nome) === 0">
+                      <ion-icon name="remove-outline"></ion-icon>
+                    </ion-button>
+                    <span class="quantity-value">{{ getQuantity(assistente.id, item.setor.nome) }}</span>
+                    <ion-button 
+                      fill="clear" 
+                      size="small"
+                      (click)="incrementQuantity(assistente.id, item.setor.nome); $event.stopPropagation()">
+                      <ion-icon name="add-outline"></ion-icon>
+                    </ion-button>
+                  </div>
+                </ion-item>
+              }
+            }
+          </div>
+        }
+      }
+    </div>
+  }
 </div>
 
+<style>
+.assistantes-container {
+  padding: 16px;
+}
+
+.subtitle {
+  color: var(--ion-color-medium);
+  margin-bottom: 20px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.no-data {
+  padding: 40px;
+  text-align: center;
+}
+
+.sector-section {
+  margin-bottom: 24px;
+}
+
+.sector-section h4 {
+  color: var(--ion-color-primary);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.assistant-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  margin-bottom: 8px;
+}
+
+.assistant-item ion-label h3 {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.assistant-item ion-label p {
+  font-size: 0.9em;
+  color: var(--ion-color-medium);
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quantity-value {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1em;
+}
+</style>

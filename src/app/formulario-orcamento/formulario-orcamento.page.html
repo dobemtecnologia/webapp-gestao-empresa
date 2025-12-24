@@ -51,7 +51,8 @@
           (assistentesChange)="onAssistentesChange($event)"
           (canaisChange)="onCanaisChange($event.canais, $event.assistantChannels)"
           (infrastructureChange)="onInfrastructureChange($event)"
-          (periodoChange)="onPeriodoChange($event)">
+          (periodoChange)="onPeriodoChange($event)"
+          (nextMainStep)="nextStep()">
         </app-configuracao-plano>
       </div>
     }
@@ -66,42 +67,44 @@
       </div>
     }
 
-    <!-- Navigation Buttons -->
-    <div class="navigation-buttons">
-      @if (currentStep > 1) {
-        <ion-button 
-          fill="outline" 
-          (click)="previousStep()"
-          class="nav-btn">
-          <ion-icon name="arrow-back" slot="start"></ion-icon>
-          Anterior
-        </ion-button>
-      }
+    <!-- Navigation Buttons - Apenas para steps principais (não para sub-steps) -->
+    @if (currentStep !== 2) {
+      <div class="navigation-buttons">
+        @if (currentStep > 1) {
+          <ion-button 
+            fill="outline" 
+            (click)="previousStep()"
+            class="nav-btn">
+            <ion-icon name="arrow-back" slot="start"></ion-icon>
+            Anterior
+          </ion-button>
+        }
 
-      @if (currentStep < totalSteps) {
-        <ion-button 
-          [disabled]="!canProceedToNextStep() || isLoading"
-          (click)="nextStep()"
-          class="nav-btn">
-          Próximo
-          <ion-icon name="arrow-forward" slot="end"></ion-icon>
-        </ion-button>
-      } @else {
-        <ion-button 
-          color="success"
-          [disabled]="!canProceedToNextStep() || isLoading"
-          (click)="finalizarOrcamento()"
-          class="nav-btn">
-          @if (isLoading) {
-            <ion-spinner name="crescent" color="light"></ion-spinner>
-            <span class="ml-2">Gerando...</span>
-          } @else {
-            <ion-icon name="checkmark-circle" slot="start"></ion-icon>
-            {{ isEditingMode ? 'Atualizar' : 'Finalizar' }} Proposta
-          }
-        </ion-button>
-      }
-    </div>
+        @if (currentStep < totalSteps) {
+          <ion-button 
+            [disabled]="!canProceedToNextStep() || isLoading"
+            (click)="nextStep()"
+            class="nav-btn">
+            Próximo
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          </ion-button>
+        } @else {
+          <ion-button 
+            color="success"
+            [disabled]="!canProceedToNextStep() || isLoading"
+            (click)="finalizarOrcamento()"
+            class="nav-btn">
+            @if (isLoading) {
+              <ion-spinner name="crescent" color="light"></ion-spinner>
+              <span class="ml-2">Gerando...</span>
+            } @else {
+              <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+              {{ isEditingMode ? 'Atualizar' : 'Finalizar' }} Proposta
+            }
+          </ion-button>
+        }
+      </div>
+    }
 
   </form>
 </ion-content>

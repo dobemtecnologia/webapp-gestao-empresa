@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoadingController, ToastController, MenuController } from '@ionic/angular';
@@ -16,6 +16,7 @@ import { PlanoSimulacaoResponse } from '../models/plano-simulacao-response.model
 import { OrcamentoDTO, ItemOrcamentoDTO, LeadData } from '../models/orcamento.model';
 import { PeriodoContratacao } from '../models/periodo-contratacao.model';
 import { LoginVM } from '../models/login-vm.model';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-formulario-orcamento',
@@ -48,12 +49,20 @@ export class FormularioOrcamentoPage implements OnInit {
   private loadingController = inject(LoadingController);
   private toastController = inject(ToastController);
   private menuController = inject(MenuController);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit() {
     this.menuController.enable(false);
     this.loginAutomatico();
     this.inicializarFormulario();
+    this.preencherDadosMockEmDev();
     this.verificarModoEdicao();
+    
+    // Atualizar validação quando o formulário mudar
+    this.formulario.valueChanges.subscribe(() => {
+      // Força a detecção de mudanças para atualizar o estado do botão
+      this.cdr.detectChanges();
+    });
   }
 
   private async loginAutomatico(): Promise<void> {
@@ -93,6 +102,35 @@ export class FormularioOrcamentoPage implements OnInit {
       // Resultado da simulação (não editável)
       resultadoSimulacao: [null]
     });
+  }
+
+  private preencherDadosMockEmDev() {
+    // Preenche dados mockados apenas em ambiente de desenvolvimento (localhost)
+    if (!environment.production && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      const dadosMock = {
+        nome: 'Elton Gonçalves',
+        email: 'elton.jd.goncalves@gmail.com',
+        telefone: '91983538941',
+        cnpj: '46418343000171'
+      };
+
+      // Formata o CNPJ (XX.XXX.XXX/XXXX-XX)
+      const cnpjFormatado = dadosMock.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+      
+      // Formata o telefone ((XX) XXXXX-XXXX)
+      const telefoneFormatado = dadosMock.telefone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+
+      // Preenche os campos do formulário
+      this.formulario.patchValue({
+        nome: dadosMock.nome,
+        email: dadosMock.email,
+        telefone: telefoneFormatado,
+        cnpj: cnpjFormatado
+      });
+
+      // Força a detecção de mudanças
+      this.cdr.detectChanges();
+    }
   }
 
   private validarArrayNaoVazio(control: any) {
@@ -211,16 +249,26 @@ export class FormularioOrcamentoPage implements OnInit {
   }
 
   canProceedToNextStep(): boolean {
+    if (!this.formulario) {
+      return false;
+    }
+
     switch (this.currentStep) {
       case 1: // Dados do Cliente
-        return !!(this.formulario.get('nome')?.valid && 
-               this.formulario.get('email')?.valid);
+        const nome = this.formulario.get('nome');
+        const email = this.formulario.get('email');
+        const nomeValido = nome && nome.value && nome.value.length >= 2 && !nome.errors?.['required'];
+        const emailValido = email && email.value && !email.errors?.['email'] && !email.errors?.['required'];
+        return !!(nomeValido && emailValido);
       case 2: // Configuração do Plano
-        return !!(this.formulario.get('setores')?.valid &&
-               this.formulario.get('infrastructure')?.valid &&
-               this.formulario.get('selectedPeriod')?.valid &&
-               this.validarAssistentes() &&
-               this.validarCanais());
+        const setores = this.formulario.get('setores');
+        const infrastructure = this.formulario.get('infrastructure');
+        const selectedPeriod = this.formulario.get('selectedPeriod');
+        const setoresValido = setores && setores.value && Array.isArray(setores.value) && setores.value.length > 0;
+        const infrastructureValido = infrastructure && infrastructure.value !== null && infrastructure.value !== undefined;
+        const periodoValido = selectedPeriod && selectedPeriod.value !== null && selectedPeriod.value !== undefined;
+        return !!(setoresValido && infrastructureValido && periodoValido && 
+               this.validarAssistentes() && this.validarCanais());
       case 3: // Revisão
         return !!this.resultadoSimulacao;
       default:
