@@ -17,22 +17,22 @@
       <div class="stepper-steps">
         <div class="step" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
           <div class="step-number">1</div>
-          <div class="step-label">Dados do Cliente</div>
+          <div class="step-label">Cliente</div>
         </div>
         <div class="step-line" [class.completed]="currentStep > 1"></div>
         <div class="step" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
           <div class="step-number">2</div>
-          <div class="step-label">Configuração</div>
+          <div class="step-label">Assistentes</div>
         </div>
         <div class="step-line" [class.completed]="currentStep > 2"></div>
         <div class="step" [class.active]="currentStep === 3" [class.completed]="currentStep > 3">
           <div class="step-number">3</div>
-          <div class="step-label">Revisão</div>
+          <div class="step-label">Cálculo Plano</div>
         </div>
         <div class="step-line" [class.completed]="currentStep > 3"></div>
         <div class="step" [class.active]="currentStep === 4" [class.completed]="currentStep === 4">
           <div class="step-number">4</div>
-          <div class="step-label">Proposta</div>
+          <div class="step-label">Revisão</div>
         </div>
       </div>
     </div>
@@ -47,79 +47,37 @@
       </div>
     }
 
-    <!-- Step 2: Configuração do Plano -->
+    <!-- Step 2: Assistentes e Canais -->
     @if (currentStep === 2) {
       <div class="step-content">
-        <app-configuracao-plano
-          #configuracaoPlano
+        <app-assistentes-canais
           [formGroup]="formulario"
           (setoresChange)="onSetoresChange($event)"
           (assistentesChange)="onAssistentesChange($event)"
-          (canaisChange)="onCanaisChange($event.canais, $event.assistantChannels)"
-          (infrastructureChange)="onInfrastructureChange($event)"
-          (periodoChange)="onPeriodoChange($event)"
-          (nextMainStep)="nextStep()"
-          (subStepChange)="onSubStepChange($event)">
-        </app-configuracao-plano>
+          (canaisChange)="onCanaisChange($event.canais, $event.assistantChannels)">
+        </app-assistentes-canais>
       </div>
     }
 
-    <!-- Step 3: Revisão -->
+    <!-- Step 3: Cálculo do Plano -->
     @if (currentStep === 3) {
+      <div class="step-content">
+        <app-calculo-plano
+          [formGroup]="formulario"
+          [resultadoSimulacao]="resultadoSimulacao"
+          (infrastructureChange)="onInfrastructureChange($event)"
+          (periodoChange)="onPeriodoChange($event)">
+        </app-calculo-plano>
+      </div>
+    }
+
+    <!-- Step 4: Revisão -->
+    @if (currentStep === 4) {
       <div class="step-content">
         <app-resumo-orcamento
           [formulario]="formulario"
           [resultadoSimulacao]="resultadoSimulacao">
         </app-resumo-orcamento>
-      </div>
-    }
-
-    <!-- Step 4: Gerar Proposta Oficial -->
-    @if (currentStep === 4) {
-      <div class="step-content">
-        @if (!propostaGerada) {
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title>Dados de Contato</ion-card-title>
-              <ion-card-subtitle>Informe seu melhor e-mail e WhatsApp para envio da proposta formal</ion-card-subtitle>
-            </ion-card-header>
-            <ion-card-content [formGroup]="formulario">
-              <ion-item>
-                <ion-label position="stacked">
-                  E-mail <ion-text color="danger">*</ion-text>
-                </ion-label>
-                <ion-input
-                  type="email"
-                  formControlName="email"
-                  placeholder="seu@email.com"
-                  required>
-                </ion-input>
-              </ion-item>
-
-              <ion-item>
-                <ion-label position="stacked">
-                  WhatsApp <ion-text color="danger">*</ion-text>
-                </ion-label>
-                <ion-input
-                  type="tel"
-                  formControlName="telefone"
-                  placeholder="(00) 00000-0000"
-                  required>
-                </ion-input>
-              </ion-item>
-            </ion-card-content>
-          </ion-card>
-        } @else {
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title>Proposta Gerada com Sucesso! 🎉</ion-card-title>
-            </ion-card-header>
-            <ion-card-content>
-              <p>Obrigado! Você receberá um e-mail em <strong>{{ formulario.get('email')?.value }}</strong> com a proposta do orçamento.</p>
-              <p>Se precisar de ajuda, é só chamar!</p>
-            </ion-card-content>
-          </ion-card>
-        }
       </div>
     }
 
@@ -131,15 +89,7 @@
   <ion-toolbar>
     <div class="navigation-buttons">
       <!-- Botão Anterior -->
-      @if (currentStep === 2 && currentSubStep > 1) {
-        <ion-button 
-          fill="outline" 
-          (click)="previousSubStep()"
-          class="nav-btn">
-          <ion-icon name="arrow-back" slot="start"></ion-icon>
-          Anterior
-        </ion-button>
-      } @else if (currentStep > 1 && currentStep !== 2) {
+      @if (currentStep > 1) {
         <ion-button 
           fill="outline" 
           (click)="previousStep()"
@@ -161,59 +111,43 @@
           <ion-icon name="arrow-forward" slot="end"></ion-icon>
         </ion-button>
       } @else if (currentStep === 2) {
-        <!-- Botões de navegação dos sub-steps -->
         <ion-button 
           [disabled]="!canProceedToNextStep() || isLoading"
-          (click)="nextSubStep()"
+          (click)="nextStep()"
           class="nav-btn">
-          @if (currentSubStep < totalSubSteps) {
-            Próximo
-            <ion-icon name="arrow-forward" slot="end"></ion-icon>
-          } @else {
-            Avançar
-            <ion-icon name="arrow-forward" slot="end"></ion-icon>
-          }
+          Próximo
+          <ion-icon name="arrow-forward" slot="end"></ion-icon>
         </ion-button>
       } @else if (currentStep === 3) {
+        <ion-button 
+          [disabled]="!canProceedToNextStep() || isLoading"
+          (click)="nextStep()"
+          class="nav-btn">
+          Próximo
+          <ion-icon name="arrow-forward" slot="end"></ion-icon>
+        </ion-button>
+      } @else if (currentStep === 4 && !orcamentoConfirmado) {
         <ion-button 
           color="success"
           [disabled]="!canProceedToNextStep() || isLoading"
           (click)="confirmarOrcamento()"
           class="nav-btn">
-          <ion-icon name="checkmark-circle" slot="start"></ion-icon>
-          Confirmar Orçamento
-        </ion-button>
-      } @else if (currentStep === 4 && !propostaGerada) {
-        <ion-button 
-          color="success"
-          [disabled]="!canProceedToNextStep() || isLoading"
-          (click)="finalizarOrcamento()"
-          class="nav-btn">
           @if (isLoading) {
             <ion-spinner name="crescent" color="light"></ion-spinner>
-            <span class="ml-2">Gerando...</span>
+            <span class="ml-2">Confirmando...</span>
           } @else {
-            <ion-icon name="document-text" slot="start"></ion-icon>
-            Gerar Proposta Oficial
+            <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+            Confirmar Orçamento
           }
         </ion-button>
-      } @else if (currentStep === 4 && propostaGerada) {
-        <div class="footer-buttons-group">
-          <ion-button 
-            color="success"
-            (click)="verPropostaCompleta()"
-            class="nav-btn">
-            <ion-icon name="document-text" slot="start"></ion-icon>
-            Ver Proposta Completa
-          </ion-button>
-          <ion-button 
-            fill="outline"
-            (click)="novoOrcamento()"
-            class="nav-btn">
-            <ion-icon name="refresh" slot="start"></ion-icon>
-            Novo Orçamento
-          </ion-button>
-        </div>
+      } @else if (currentStep === 4 && orcamentoConfirmado) {
+        <ion-button 
+          color="success"
+          (click)="verPropostaCompleta()"
+          class="nav-btn">
+          <ion-icon name="document-text" slot="start"></ion-icon>
+          Ver Orçamento Completo
+        </ion-button>
       } @else {
         <div class="nav-btn-spacer"></div>
       }

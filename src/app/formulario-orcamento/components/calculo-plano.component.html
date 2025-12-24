@@ -1,0 +1,41 @@
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Cálculo do Plano</ion-card-title>
+    <ion-card-subtitle>Selecione a infraestrutura e o período de contratação</ion-card-subtitle>
+  </ion-card-header>
+
+  <ion-card-content>
+    <!-- Seção: Infraestrutura -->
+    <div class="section-container">
+      <app-infraestrutura-selector
+        [formGroup]="formGroup"
+        (infrastructureChange)="infrastructureChange.emit($event)">
+      </app-infraestrutura-selector>
+    </div>
+
+    <!-- Seção: Período (só aparece após selecionar infraestrutura e calcular) -->
+    @if (resultadoSimulacao) {
+      <div class="section-container">
+        <app-periodo-selector
+          [formGroup]="formGroup"
+          (periodoChange)="periodoChange.emit($event)">
+        </app-periodo-selector>
+      </div>
+    }
+  </ion-card-content>
+</ion-card>
+
+<style>
+.section-container {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--ion-color-medium);
+}
+
+.section-container:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+</style>
+

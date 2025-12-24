@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoadingController, ToastController, MenuController } from '@ionic/angular';
@@ -26,12 +26,8 @@ import { environment } from '../../environments/environment';
 })
 export class FormularioOrcamentoPage implements OnInit {
   formulario!: FormGroup;
-  currentStep = 1; // 1: Dados Cliente, 2: Configuração, 3: Revisão, 4: Gerar Proposta
+  currentStep = 1; // 1: Cliente, 2: Assistentes, 3: Cálculo Plano, 4: Revisão
   totalSteps = 4;
-
-  // Estado dos sub-steps do passo 2 (Configuração)
-  currentSubStep = 1;
-  totalSubSteps = 5;
 
   // Estado do formulário
   resultadoSimulacao?: PlanoSimulacaoResponse;
@@ -438,10 +434,6 @@ export class FormularioOrcamentoPage implements OnInit {
     if (this.canProceedToNextStep()) {
       if (this.currentStep < this.totalSteps) {
         this.currentStep++;
-        // Reset sub-step quando mudar de passo principal
-        if (this.currentStep !== 2) {
-          this.currentSubStep = 1;
-        }
       }
     }
   }
@@ -449,13 +441,6 @@ export class FormularioOrcamentoPage implements OnInit {
   previousStep() {
     if (this.currentStep > 1) {
       this.currentStep--;
-      // Reset sub-step quando mudar de passo principal
-      if (this.currentStep !== 2) {
-        this.currentSubStep = 1;
-      } else {
-        // Se voltou para o passo 2, vai para o último sub-step
-        this.currentSubStep = this.totalSubSteps;
-      }
     }
   }
 
@@ -471,30 +456,126 @@ export class FormularioOrcamentoPage implements OnInit {
         const nomeValido = nome && nome.value && nome.value.length >= 2 && !nome.errors?.['required'];
         const emailValido = email && email.value && !email.errors?.['email'] && !email.errors?.['required'];
         return !!(nomeValido && emailValido);
-      case 2: // Configuração do Plano
+      case 2: // Assistentes e Canais
         const setores = this.formulario.get('setores');
+        const setoresValido = setores && setores.value && Array.isArray(setores.value) && setores.value.length > 0;
+        return !!(setoresValido && this.validarAssistentes() && this.validarCanais());
+      case 3: // Cálculo Plano
         const infrastructure = this.formulario.get('infrastructure');
         const selectedPeriod = this.formulario.get('selectedPeriod');
-        const setoresValido = setores && setores.value && Array.isArray(setores.value) && setores.value.length > 0;
         const infrastructureValido = infrastructure && infrastructure.value !== null && infrastructure.value !== undefined;
         const periodoValido = selectedPeriod && selectedPeriod.value !== null && selectedPeriod.value !== undefined;
-        return !!(setoresValido && infrastructureValido && periodoValido && 
-               this.validarAssistentes() && this.validarCanais());
-      case 3: // Revisão
+        return !!(infrastructureValido && periodoValido && this.resultadoSimulacao);
+      case 4: // Revisão
         return !!this.resultadoSimulacao;
-      case 4: // Gerar Proposta
-        const emailProposta = this.formulario.get('email')?.value;
-        const telefoneProposta = this.formulario.get('telefone')?.value;
-        return !!(emailProposta && telefoneProposta);
       default:
         return false;
     }
   }
 
-  confirmarOrcamento() {
-    this.orcamentoConfirmado = true;
-    this.currentStep = 4; // Vai para o passo de gerar proposta
-    this.cdr.detectChanges();
+  async confirmarOrcamento() {
+    if (!this.canProceedToNextStep()) {
+      return;
+    }
+
+    this.isLoading = true;
+    const loading = await this.loadingController.create({
+      message: 'Confirmando orçamento...',
+      spinner: 'crescent'
+    });
+    await loading.present();
+
+    try {
+      // Buscar período e vendedor
+      const periodoCodigo = this.formulario.get('selectedPeriod')?.value;
+      let periodoData: PeriodoContratacao | null = null;
+
+      if (periodoCodigo) {
+        const periodos = await firstValueFrom(
+          this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([])))
+        );
+        periodoData = periodos?.find(p => p.codigo === periodoCodigo && p.ativo) || null;
+      }
+
+      const vendedors = await firstValueFrom(
+        this.planoService.getVendedors('id,asc', 0, 100).pipe(catchError(() => of([])))
+      );
+      const vendedorId = vendedors?.find(v => v.tipo === 'SISTEMA_IA')?.id;
+
+      if (!vendedorId) {
+        throw new Error('Vendedor sistema não encontrado');
+      }
+
+      const leadData: LeadData = {
+        nome: this.formulario.get('nome')?.value,
+        email: this.formulario.get('email')?.value,
+        telefone: this.formulario.get('telefone')?.value
+      };
+
+      const orcamentoDTO = this.converterParaOrcamentoDTO(leadData, periodoData, vendedorId);
+      
+      if (this.isEditingMode && this.orcamentoId) {
+        // Atualiza orçamento existente
+        orcamentoDTO.id = this.orcamentoId;
+        const response = await firstValueFrom(
+          this.orcamentoService.update(this.orcamentoId, orcamentoDTO).pipe(
+            catchError((error) => {
+              console.error('Erro ao atualizar orçamento:', error);
+              throw error;
+            })
+          )
+        );
+        
+        if (response.codigoHash) {
+          this.hashProposta = response.codigoHash;
+        }
+      } else {
+        // Cria novo orçamento
+        const response = await firstValueFrom(
+          this.orcamentoService.create(orcamentoDTO).pipe(
+            catchError((error) => {
+              console.error('Erro ao criar orçamento:', error);
+              throw error;
+            })
+          )
+        );
+        
+        if (response.codigoHash) {
+          this.hashProposta = response.codigoHash;
+          this.orcamentoId = response.id;
+        }
+      }
+
+      loading.dismiss();
+      this.isLoading = false;
+      this.orcamentoConfirmado = true;
+      this.cdr.detectChanges();
+      
+      const toast = await this.toastController.create({
+        message: 'Orçamento confirmado com sucesso!',
+        duration: 3000,
+        color: 'success',
+        position: 'top'
+      });
+      await toast.present();
+
+    } catch (error: any) {
+      loading.dismiss();
+      this.isLoading = false;
+      
+      let errorMessage = 'Erro ao confirmar orçamento. Tente novamente.';
+      if (error.error?.message) {
+        errorMessage = error.error.message;
+      }
+      
+      const toast = await this.toastController.create({
+        message: errorMessage,
+        duration: 3000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+    }
   }
 
   verPropostaCompleta() {
@@ -533,29 +614,6 @@ export class FormularioOrcamentoPage implements OnInit {
   }
 
   // Eventos dos subcomponentes
-  @ViewChild('configuracaoPlano') configuracaoPlanoComponent?: any;
-
-  onSubStepChange(event: { currentSubStep: number; totalSubSteps: number }) {
-    this.currentSubStep = event.currentSubStep;
-    this.totalSubSteps = event.totalSubSteps;
-    this.cdr.detectChanges();
-  }
-
-  nextSubStep() {
-    if (this.configuracaoPlanoComponent) {
-      this.configuracaoPlanoComponent.nextSubStep();
-    }
-  }
-
-  previousSubStep() {
-    if (this.currentSubStep === 1) {
-      // Se estiver no primeiro sub-step, volta para o passo anterior
-      this.previousStep();
-    } else if (this.configuracaoPlanoComponent) {
-      // Caso contrário, volta para o sub-step anterior
-      this.configuracaoPlanoComponent.previousSubStep();
-    }
-  }
 
   onSetoresChange(setores: any[]) {
     this.formulario.patchValue({ setores });

@@ -15,6 +15,8 @@ import { AssistentesSelectorComponent } from './components/assistentes-selector.
 import { CanaisConfigComponent } from './components/canais-config.component';
 import { InfraestruturaSelectorComponent } from './components/infraestrutura-selector.component';
 import { PeriodoSelectorComponent } from './components/periodo-selector.component';
+import { AssistentesCanaisComponent } from './components/assistentes-canais.component';
+import { CalculoPlanoComponent } from './components/calculo-plano.component';
 
 @NgModule({
   imports: [
@@ -33,7 +35,9 @@ import { PeriodoSelectorComponent } from './components/periodo-selector.componen
     AssistentesSelectorComponent,
     CanaisConfigComponent,
     InfraestruturaSelectorComponent,
-    PeriodoSelectorComponent
+    PeriodoSelectorComponent,
+    AssistentesCanaisComponent,
+    CalculoPlanoComponent
   ]
 })
 export class FormularioOrcamentoPageModule {}

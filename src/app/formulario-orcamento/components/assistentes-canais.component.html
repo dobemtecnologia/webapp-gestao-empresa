@@ -1,0 +1,47 @@
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Assistentes e Canais</ion-card-title>
+    <ion-card-subtitle>Selecione os setores, configure os assistentes e canais</ion-card-subtitle>
+  </ion-card-header>
+
+  <ion-card-content>
+    <!-- Seção: Setores -->
+    <div class="section-container">
+      <app-setores-selector
+        [formGroup]="formGroup"
+        (setoresChange)="setoresChange.emit($event)">
+      </app-setores-selector>
+    </div>
+
+    <!-- Seção: Assistentes -->
+    <div class="section-container">
+      <app-assistentes-selector
+        [formGroup]="formGroup"
+        (assistentesChange)="assistentesChange.emit($event)">
+      </app-assistentes-selector>
+    </div>
+
+    <!-- Seção: Canais -->
+    <div class="section-container">
+      <app-canais-config
+        [formGroup]="formGroup"
+        (canaisChange)="canaisChange.emit($event)">
+      </app-canais-config>
+    </div>
+  </ion-card-content>
+</ion-card>
+
+<style>
+.section-container {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--ion-color-medium);
+}
+
+.section-container:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+</style>
+
