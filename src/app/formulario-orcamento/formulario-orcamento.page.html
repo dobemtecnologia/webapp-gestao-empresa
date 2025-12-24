@@ -25,9 +25,14 @@
           <div class="step-label">Configuração</div>
         </div>
         <div class="step-line" [class.completed]="currentStep > 2"></div>
-        <div class="step" [class.active]="currentStep === 3" [class.completed]="currentStep === 3">
+        <div class="step" [class.active]="currentStep === 3" [class.completed]="currentStep > 3">
           <div class="step-number">3</div>
           <div class="step-label">Revisão</div>
+        </div>
+        <div class="step-line" [class.completed]="currentStep > 3"></div>
+        <div class="step" [class.active]="currentStep === 4" [class.completed]="currentStep === 4">
+          <div class="step-number">4</div>
+          <div class="step-label">Proposta</div>
         </div>
       </div>
     </div>
@@ -57,13 +62,62 @@
       </div>
     }
 
-    <!-- Step 3: Revisão e Finalização -->
+    <!-- Step 3: Revisão -->
     @if (currentStep === 3) {
       <div class="step-content">
         <app-resumo-orcamento
           [formulario]="formulario"
           [resultadoSimulacao]="resultadoSimulacao">
         </app-resumo-orcamento>
+      </div>
+    }
+
+    <!-- Step 4: Gerar Proposta Oficial -->
+    @if (currentStep === 4) {
+      <div class="step-content">
+        @if (!propostaGerada) {
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>Dados de Contato</ion-card-title>
+              <ion-card-subtitle>Informe seu melhor e-mail e WhatsApp para envio da proposta formal</ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content [formGroup]="formulario">
+              <ion-item>
+                <ion-label position="stacked">
+                  E-mail <ion-text color="danger">*</ion-text>
+                </ion-label>
+                <ion-input
+                  type="email"
+                  formControlName="email"
+                  placeholder="seu@email.com"
+                  required>
+                </ion-input>
+              </ion-item>
+
+              <ion-item>
+                <ion-label position="stacked">
+                  WhatsApp <ion-text color="danger">*</ion-text>
+                </ion-label>
+                <ion-input
+                  type="tel"
+                  formControlName="telefone"
+                  placeholder="(00) 00000-0000"
+                  required>
+                </ion-input>
+              </ion-item>
+            </ion-card-content>
+          </ion-card>
+        } @else {
+          <ion-card>
+            <ion-card-header>
+              <ion-card-title>Proposta Gerada com Sucesso! 🎉</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <p>Obrigado! Você receberá um e-mail em <strong>{{ formulario.get('email')?.value }}</strong> com a proposta do orçamento.</p>
+              <p>Se precisar de ajuda, é só chamar!</p>
+            </ion-card-content>
+          </ion-card>
+        }
       </div>
     }
 
@@ -80,15 +134,16 @@
           </ion-button>
         }
 
-        @if (currentStep < totalSteps) {
+        @if (currentStep === 3) {
           <ion-button 
+            color="success"
             [disabled]="!canProceedToNextStep() || isLoading"
-            (click)="nextStep()"
+            (click)="confirmarOrcamento()"
             class="nav-btn">
-            Próximo
-            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+            <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+            Confirmar Orçamento
           </ion-button>
-        } @else {
+        } @else if (currentStep === 4 && !propostaGerada) {
           <ion-button 
             color="success"
             [disabled]="!canProceedToNextStep() || isLoading"
@@ -98,9 +153,32 @@
               <ion-spinner name="crescent" color="light"></ion-spinner>
               <span class="ml-2">Gerando...</span>
             } @else {
-              <ion-icon name="checkmark-circle" slot="start"></ion-icon>
-              {{ isEditingMode ? 'Atualizar' : 'Finalizar' }} Proposta
+              <ion-icon name="document-text" slot="start"></ion-icon>
+              Gerar Proposta Oficial
             }
+          </ion-button>
+        } @else if (currentStep === 4 && propostaGerada) {
+          <ion-button 
+            color="success"
+            (click)="verPropostaCompleta()"
+            class="nav-btn">
+            <ion-icon name="document-text" slot="start"></ion-icon>
+            Ver Proposta Completa
+          </ion-button>
+          <ion-button 
+            fill="outline"
+            (click)="novoOrcamento()"
+            class="nav-btn">
+            <ion-icon name="refresh" slot="start"></ion-icon>
+            Novo Orçamento
+          </ion-button>
+        } @else if (currentStep < totalSteps) {
+          <ion-button 
+            [disabled]="!canProceedToNextStep() || isLoading"
+            (click)="nextStep()"
+            class="nav-btn">
+            Próximo
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
           </ion-button>
         }
       </div>

@@ -51,13 +51,18 @@
           <ion-icon name="arrow-back" slot="start"></ion-icon>
           Anterior
         </ion-button>
+      } @else {
+        <div></div>
       }
-      @if (currentSubStep < totalSubSteps) {
-        <ion-button (click)="nextSubStep()">
+      <ion-button (click)="nextSubStep()">
+        @if (currentSubStep < totalSubSteps) {
           Próximo
           <ion-icon name="arrow-forward" slot="end"></ion-icon>
-        </ion-button>
-      }
+        } @else {
+          Avançar
+          <ion-icon name="arrow-forward" slot="end"></ion-icon>
+        }
+      </ion-button>
     </div>
   </ion-card-content>
 </ion-card>

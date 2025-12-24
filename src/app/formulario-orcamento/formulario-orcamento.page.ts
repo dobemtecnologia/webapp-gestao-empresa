@@ -26,8 +26,8 @@ import { environment } from '../../environments/environment';
 })
 export class FormularioOrcamentoPage implements OnInit {
   formulario!: FormGroup;
-  currentStep = 1; // 1: Dados Cliente, 2: Configuração, 3: Revisão
-  totalSteps = 3;
+  currentStep = 1; // 1: Dados Cliente, 2: Configuração, 3: Revisão, 4: Gerar Proposta
+  totalSteps = 4;
 
   // Estado do formulário
   resultadoSimulacao?: PlanoSimulacaoResponse;
@@ -35,6 +35,9 @@ export class FormularioOrcamentoPage implements OnInit {
   isEditingMode = false;
   orcamentoId?: number;
   orcamentoHash?: string;
+  orcamentoConfirmado = false;
+  propostaGerada = false;
+  hashProposta?: string;
 
   // Serviços
   private fb = inject(FormBuilder);
@@ -271,9 +274,29 @@ export class FormularioOrcamentoPage implements OnInit {
                this.validarAssistentes() && this.validarCanais());
       case 3: // Revisão
         return !!this.resultadoSimulacao;
+      case 4: // Gerar Proposta
+        const emailProposta = this.formulario.get('email')?.value;
+        const telefoneProposta = this.formulario.get('telefone')?.value;
+        return !!(emailProposta && telefoneProposta);
       default:
         return false;
     }
+  }
+
+  confirmarOrcamento() {
+    this.orcamentoConfirmado = true;
+    this.currentStep = 4; // Vai para o passo de gerar proposta
+    this.cdr.detectChanges();
+  }
+
+  verPropostaCompleta() {
+    if (this.hashProposta) {
+      this.router.navigate(['/resultado-orcamento'], { queryParams: { hash: this.hashProposta } });
+    }
+  }
+
+  novoOrcamento() {
+    this.router.navigate(['/formulario-orcamento']);
   }
 
   private validarAssistentes(): boolean {
@@ -488,7 +511,10 @@ export class FormularioOrcamentoPage implements OnInit {
           .subscribe({
             next: (orcamento) => {
               if (orcamento.codigoHash) {
-                this.router.navigate(['/resultado-orcamento'], { queryParams: { hash: orcamento.codigoHash } });
+                this.hashProposta = orcamento.codigoHash;
+                this.propostaGerada = true;
+                this.showToast('Proposta gerada com sucesso!', 'success');
+                this.cdr.detectChanges();
               } else {
                 this.showToast('Orçamento criado, mas hash não encontrado.', 'warning');
               }
