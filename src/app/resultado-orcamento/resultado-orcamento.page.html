@@ -79,6 +79,9 @@
                   <div class="item-details">
                     <div class="item-header">
                       <h3 class="item-description">{{ item.descricao || 'Item sem descrição' }}</h3>
+                  
+                    </div>
+                    <div class="item-meta">
                       <div class="quantity-controls">
                         <ion-button 
                           fill="clear" 
@@ -95,15 +98,10 @@
                         </ion-button>
                       </div>
                     </div>
-                    <div class="item-meta">
-                      @if (item.totalSetupFechado && item.totalSetupFechado > 0) {
-                        <span class="item-setup">Setup: {{ formatarMoeda(item.totalSetupFechado) }}</span>
-                      }
-                    </div>
                   </div>
                   <div class="item-cost">
-                    <div class="cost-label">Custo Mensal</div>
-                    <div class="cost-value">{{ formatarMoeda(item.totalMensalFechado || 0) }}</div>
+                    <div class="cost-label">Valor do Setup</div>
+                    <div class="cost-value">{{ formatarMoeda(item.totalSetupFechado || 0) }}</div>
                   </div>
                   <ion-button 
                     fill="clear" 

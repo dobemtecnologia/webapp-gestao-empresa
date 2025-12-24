@@ -436,26 +436,27 @@ export class ResultadoOrcamentoPage implements OnInit {
 
       console.log('✅ Orçamento atualizado com sucesso:', orcamentoAtualizadoResponse);
 
-      // Atualiza os dados localmente com a resposta da API
-      if (orcamentoAtualizadoResponse.itens) {
+      // Usa os itens editados (que já têm os valores recalculados corretos)
+      // em vez dos itens da resposta da API, para manter os valores calculados
+      const itensSalvos = itensAtualizados;
+      
+      // Atualiza os dados localmente com os itens que foram salvos (valores corretos)
+      const currentData = this._orcamentoData();
+      if (currentData) {
         this._orcamentoData.set({
-          orcamento: orcamentoAtualizadoResponse,
-          itens: orcamentoAtualizadoResponse.itens
+          orcamento: {
+            ...orcamentoAtualizadoResponse,
+            valorTotalFechado,
+            valorTotalTabela
+          },
+          itens: itensSalvos
         });
-      } else {
-        // Se a resposta não trouxer itens, atualiza apenas o orçamento
-        const currentData = this._orcamentoData();
-        if (currentData) {
-          this._orcamentoData.set({
-            ...currentData,
-            orcamento: orcamentoAtualizadoResponse
-          });
-        }
       }
 
-      // Atualiza os itens iniciais para refletir as mudanças salvas
-      const itensSalvos = orcamentoAtualizadoResponse.itens || this.itens();
+      // Atualiza os itens iniciais com os valores salvos para que temMudancas() retorne false
       this._itensIniciais.set(JSON.parse(JSON.stringify(itensSalvos)));
+      
+      // Limpa os itens editados - agora itens() usará _orcamentoData que já tem os valores corretos
       this._itensEditados.set([]);
 
       loading.dismiss();
