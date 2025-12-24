@@ -244,12 +244,12 @@
           <ion-button 
             expand="block" 
             fill="outline" 
-            color="primary"
+            color="warning"
             size="large"
-            (click)="falarComConsultor()"
-            class="action-btn consultor-btn">
-            <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
-            Falar com Consultor
+            (click)="editarProposta()"
+            >
+            <ion-icon name="create-outline" slot="start"></ion-icon>
+            Alterar 
           </ion-button>
 
           <ion-button 
@@ -257,22 +257,23 @@
             color="success" 
             size="large"
             (click)="aprovarEAtivar()"
-            class="action-btn approve-btn">
+            >
             <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-            Aprovar orçamento
+            Aprovar 
           </ion-button>
         </div>
 
+     
         <ion-button 
-          expand="block" 
-          fill="clear" 
-          color="medium"
-          size="default"
-          (click)="editarProposta()"
-          class="action-btn edit-btn">
-          <ion-icon name="create-outline" slot="start"></ion-icon>
-          Editar orçamento
-        </ion-button>
+            expand="block" 
+            fill="outline" 
+            color="primary"
+            size="large"
+            (click)="falarComConsultor()"
+            class="action-btn consultor-btn">
+            <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
+           Falar com consultor
+          </ion-button>
       </div>
     </ion-footer>
   }
