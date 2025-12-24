@@ -1,0 +1,27 @@
+<div class="infraestrutura-container">
+  <h3>Escolha a Infraestrutura</h3>
+  <p class="subtitle">Selecione o tipo de infraestrutura para seu plano</p>
+
+  @if (carregandoInfraestruturas) {
+    <ion-spinner></ion-spinner>
+  } @else {
+    <div class="infraestrutura-grid">
+      @for (infra of infraestruturas; track infra.id) {
+        <ion-card 
+          [class.selected]="isSelected(infra.id)"
+          (click)="selectInfrastructure(infra.id)">
+          <ion-card-header>
+            <ion-card-title>{{ infra.nome }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <p>{{ infra.tipo }}</p>
+            @if (isSelected(infra.id)) {
+              <ion-text color="success">✓ Selecionado</ion-text>
+            }
+          </ion-card-content>
+        </ion-card>
+      }
+    </div>
+  }
+</div>
+

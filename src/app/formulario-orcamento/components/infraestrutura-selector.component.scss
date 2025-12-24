@@ -1,0 +1,26 @@
+.infraestrutura-container {
+  padding: 16px;
+}
+
+.infraestrutura-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+ion-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &.selected {
+    --background: var(--ion-color-primary-tint);
+    border: 2px solid var(--ion-color-primary);
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+

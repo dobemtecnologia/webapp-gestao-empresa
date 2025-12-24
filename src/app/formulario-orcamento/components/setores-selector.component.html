@@ -1,0 +1,35 @@
+<div class="setores-container">
+  <h3>Selecione os Setores</h3>
+  <p class="subtitle">Escolha os setores em que sua empresa precisa de assistência</p>
+
+  @if (carregandoSetores) {
+    <ion-spinner></ion-spinner>
+  } @else {
+    <ion-list>
+      @for (setor of setoresDisponiveis; track setor.id) {
+        <ion-item 
+          [class.selected]="isSetorSelected(setor)"
+          (click)="toggleSetor(setor)">
+          <ion-checkbox 
+            slot="start" 
+            [checked]="isSetorSelected(setor)"
+            (ionChange)="toggleSetor(setor)">
+          </ion-checkbox>
+          @if (setor.icone) {
+            <ion-icon [name]="setor.icone" slot="start"></ion-icon>
+          }
+          <ion-label>
+            <h2>{{ setor.nome }}</h2>
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+  }
+
+  @if (setoresSelecionados.length > 0) {
+    <ion-text color="success" class="selection-info">
+      {{ setoresSelecionados.length }} setor(es) selecionado(s)
+    </ion-text>
+  }
+</div>
+

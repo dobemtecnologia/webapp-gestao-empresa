@@ -1,0 +1,74 @@
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Configuração do Plano</ion-card-title>
+  </ion-card-header>
+
+  <ion-card-content>
+    <!-- Sub-step: Setores -->
+    @if (currentSubStep === 1) {
+      <app-setores-selector
+        [formGroup]="formGroup"
+        (setoresChange)="setoresChange.emit($event)">
+      </app-setores-selector>
+    }
+
+    <!-- Sub-step: Assistentes -->
+    @if (currentSubStep === 2) {
+      <app-assistentes-selector
+        [formGroup]="formGroup"
+        (assistentesChange)="assistentesChange.emit($event)">
+      </app-assistentes-selector>
+    }
+
+    <!-- Sub-step: Canais -->
+    @if (currentSubStep === 3) {
+      <app-canais-config
+        [formGroup]="formGroup"
+        (canaisChange)="canaisChange.emit($event)">
+      </app-canais-config>
+    }
+
+    <!-- Sub-step: Infraestrutura -->
+    @if (currentSubStep === 4) {
+      <app-infraestrutura-selector
+        [formGroup]="formGroup"
+        (infrastructureChange)="infrastructureChange.emit($event)">
+      </app-infraestrutura-selector>
+    }
+
+    <!-- Sub-step: Período -->
+    @if (currentSubStep === 5) {
+      <app-periodo-selector
+        [formGroup]="formGroup"
+        (periodoChange)="periodoChange.emit($event)">
+      </app-periodo-selector>
+    }
+
+    <!-- Sub-step Navigation -->
+    <div class="sub-step-nav">
+      @if (currentSubStep > 1) {
+        <ion-button fill="outline" (click)="previousSubStep()">
+          <ion-icon name="arrow-back" slot="start"></ion-icon>
+          Anterior
+        </ion-button>
+      }
+      @if (currentSubStep < totalSubSteps) {
+        <ion-button (click)="nextSubStep()">
+          Próximo
+          <ion-icon name="arrow-forward" slot="end"></ion-icon>
+        </ion-button>
+      }
+    </div>
+  </ion-card-content>
+</ion-card>
+
+<style>
+.sub-step-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ion-color-medium);
+}
+</style>
+

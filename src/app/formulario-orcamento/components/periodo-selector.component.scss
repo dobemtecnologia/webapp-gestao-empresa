@@ -1,0 +1,56 @@
+.periodo-container {
+  padding: 16px;
+}
+
+.periodo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+ion-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &.selected {
+    --background: var(--ion-color-primary-tint);
+    border: 2px solid var(--ion-color-primary);
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.preco-info {
+  text-align: center;
+}
+
+.preco-mensal {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: var(--ion-color-primary);
+  margin: 8px 0;
+}
+
+.preco-total {
+  color: var(--ion-color-medium);
+  font-size: 0.9em;
+  margin: 4px 0;
+}
+
+.desconto {
+  display: block;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.selected-badge {
+  display: block;
+  text-align: center;
+  margin-top: 8px;
+  font-weight: 600;
+}
+

@@ -1,0 +1,40 @@
+<div class="periodo-container">
+  <h3>Período de Contratação</h3>
+  <p class="subtitle">Escolha o período e veja os descontos disponíveis</p>
+
+  @if (carregando) {
+    <ion-spinner></ion-spinner>
+  } @else if (periodCards.length === 0) {
+    <ion-text color="warning">
+      Complete a configuração anterior para ver os períodos disponíveis
+    </ion-text>
+  } @else {
+    <div class="periodo-grid">
+      @for (periodo of periodCards; track periodo.codigo) {
+        <ion-card 
+          [class.selected]="isSelected(periodo.codigo)"
+          (click)="selectPeriod(periodo.codigo)">
+          <ion-card-header>
+            <ion-card-title>{{ periodo.nome }}</ion-card-title>
+            <ion-card-subtitle>{{ periodo.meses }} mês(es)</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="preco-info">
+              <p class="preco-mensal">{{ formatarMoeda(periodo.precoMensalEquivalente) }}/mês</p>
+              <p class="preco-total">Total: {{ formatarMoeda(periodo.precoComDesconto) }}</p>
+              @if (periodo.valorDesconto > 0) {
+                <ion-text color="success" class="desconto">
+                  Economia: {{ formatarMoeda(periodo.valorDesconto) }}
+                </ion-text>
+              }
+            </div>
+            @if (isSelected(periodo.codigo)) {
+              <ion-text color="success" class="selected-badge">✓ Selecionado</ion-text>
+            }
+          </ion-card-content>
+        </ion-card>
+      }
+    </div>
+  }
+</div>
+

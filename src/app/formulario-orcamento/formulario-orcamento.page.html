@@ -1,0 +1,108 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Formulário de Orçamento</ion-title>
+      <ion-buttons slot="end">
+        <ion-button routerLink="/wizard">
+          <ion-icon name="chatbubbles-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <form [formGroup]="formulario" (ngSubmit)="finalizarOrcamento()">
+    
+    <!-- Stepper Indicator -->
+    <div class="stepper-container">
+      <div class="stepper-steps">
+        <div class="step" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
+          <div class="step-number">1</div>
+          <div class="step-label">Dados do Cliente</div>
+        </div>
+        <div class="step-line" [class.completed]="currentStep > 1"></div>
+        <div class="step" [class.active]="currentStep === 2" [class.completed]="currentStep > 2">
+          <div class="step-number">2</div>
+          <div class="step-label">Configuração</div>
+        </div>
+        <div class="step-line" [class.completed]="currentStep > 2"></div>
+        <div class="step" [class.active]="currentStep === 3" [class.completed]="currentStep === 3">
+          <div class="step-number">3</div>
+          <div class="step-label">Revisão</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1: Dados do Cliente -->
+    @if (currentStep === 1) {
+      <div class="step-content">
+        <app-dados-cliente 
+          [formGroup]="formulario"
+          (cnpjConsultado)="onSetoresChange($event)">
+        </app-dados-cliente>
+      </div>
+    }
+
+    <!-- Step 2: Configuração do Plano -->
+    @if (currentStep === 2) {
+      <div class="step-content">
+        <app-configuracao-plano
+          [formGroup]="formulario"
+          (setoresChange)="onSetoresChange($event)"
+          (assistentesChange)="onAssistentesChange($event)"
+          (canaisChange)="onCanaisChange($event.canais, $event.assistantChannels)"
+          (infrastructureChange)="onInfrastructureChange($event)"
+          (periodoChange)="onPeriodoChange($event)">
+        </app-configuracao-plano>
+      </div>
+    }
+
+    <!-- Step 3: Revisão e Finalização -->
+    @if (currentStep === 3) {
+      <div class="step-content">
+        <app-resumo-orcamento
+          [formulario]="formulario"
+          [resultadoSimulacao]="resultadoSimulacao">
+        </app-resumo-orcamento>
+      </div>
+    }
+
+    <!-- Navigation Buttons -->
+    <div class="navigation-buttons">
+      @if (currentStep > 1) {
+        <ion-button 
+          fill="outline" 
+          (click)="previousStep()"
+          class="nav-btn">
+          <ion-icon name="arrow-back" slot="start"></ion-icon>
+          Anterior
+        </ion-button>
+      }
+
+      @if (currentStep < totalSteps) {
+        <ion-button 
+          [disabled]="!canProceedToNextStep() || isLoading"
+          (click)="nextStep()"
+          class="nav-btn">
+          Próximo
+          <ion-icon name="arrow-forward" slot="end"></ion-icon>
+        </ion-button>
+      } @else {
+        <ion-button 
+          color="success"
+          [disabled]="!canProceedToNextStep() || isLoading"
+          (click)="finalizarOrcamento()"
+          class="nav-btn">
+          @if (isLoading) {
+            <ion-spinner name="crescent" color="light"></ion-spinner>
+            <span class="ml-2">Gerando...</span>
+          } @else {
+            <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+            {{ isEditingMode ? 'Atualizar' : 'Finalizar' }} Proposta
+          }
+        </ion-button>
+      }
+    </div>
+
+  </form>
+</ion-content>
+

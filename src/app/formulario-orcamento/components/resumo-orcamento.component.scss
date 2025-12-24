@@ -1,0 +1,14 @@
+ion-card {
+  margin: 16px;
+}
+
+.resumo-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--ion-color-medium);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+

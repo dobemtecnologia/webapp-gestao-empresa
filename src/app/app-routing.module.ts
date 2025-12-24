@@ -29,6 +29,11 @@ const routes: Routes = [
     // Sem AuthGuard para permitir acesso via link compartilhável
   },
   {
+    path: 'formulario-orcamento',
+    loadChildren: () => import('./formulario-orcamento/formulario-orcamento.module').then( m => m.FormularioOrcamentoPageModule)
+    // Sem AuthGuard para permitir acesso de leads anônimos
+  },
+  {
     path: 'login',
     loadChildren: () => import('./login/login.module').then( m => m.LoginPageModule)
   }
