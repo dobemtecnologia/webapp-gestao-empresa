@@ -51,13 +51,15 @@
     @if (currentStep === 2) {
       <div class="step-content">
         <app-configuracao-plano
+          #configuracaoPlano
           [formGroup]="formulario"
           (setoresChange)="onSetoresChange($event)"
           (assistentesChange)="onAssistentesChange($event)"
           (canaisChange)="onCanaisChange($event.canais, $event.assistantChannels)"
           (infrastructureChange)="onInfrastructureChange($event)"
           (periodoChange)="onPeriodoChange($event)"
-          (nextMainStep)="nextStep()">
+          (nextMainStep)="nextStep()"
+          (subStepChange)="onSubStepChange($event)">
         </app-configuracao-plano>
       </div>
     }
@@ -121,43 +123,82 @@
       </div>
     }
 
-    <!-- Navigation Buttons - Apenas para steps principais (não para sub-steps) -->
-    @if (currentStep !== 2) {
-      <div class="navigation-buttons">
-        @if (currentStep > 1) {
-          <ion-button 
-            fill="outline" 
-            (click)="previousStep()"
-            class="nav-btn">
-            <ion-icon name="arrow-back" slot="start"></ion-icon>
-            Anterior
-          </ion-button>
-        }
+  </form>
+</ion-content>
 
-        @if (currentStep === 3) {
-          <ion-button 
-            color="success"
-            [disabled]="!canProceedToNextStep() || isLoading"
-            (click)="confirmarOrcamento()"
-            class="nav-btn">
-            <ion-icon name="checkmark-circle" slot="start"></ion-icon>
-            Confirmar Orçamento
-          </ion-button>
-        } @else if (currentStep === 4 && !propostaGerada) {
-          <ion-button 
-            color="success"
-            [disabled]="!canProceedToNextStep() || isLoading"
-            (click)="finalizarOrcamento()"
-            class="nav-btn">
-            @if (isLoading) {
-              <ion-spinner name="crescent" color="light"></ion-spinner>
-              <span class="ml-2">Gerando...</span>
-            } @else {
-              <ion-icon name="document-text" slot="start"></ion-icon>
-              Gerar Proposta Oficial
-            }
-          </ion-button>
-        } @else if (currentStep === 4 && propostaGerada) {
+<!-- Footer com botões de navegação - Fixo para todos os passos -->
+<ion-footer>
+  <ion-toolbar>
+    <div class="navigation-buttons">
+      <!-- Botão Anterior -->
+      @if (currentStep === 2 && currentSubStep > 1) {
+        <ion-button 
+          fill="outline" 
+          (click)="previousSubStep()"
+          class="nav-btn">
+          <ion-icon name="arrow-back" slot="start"></ion-icon>
+          Anterior
+        </ion-button>
+      } @else if (currentStep > 1 && currentStep !== 2) {
+        <ion-button 
+          fill="outline" 
+          (click)="previousStep()"
+          class="nav-btn">
+          <ion-icon name="arrow-back" slot="start"></ion-icon>
+          Anterior
+        </ion-button>
+      } @else {
+        <div class="nav-btn-spacer"></div>
+      }
+
+      <!-- Botões principais por passo -->
+      @if (currentStep === 1) {
+        <ion-button 
+          [disabled]="!canProceedToNextStep() || isLoading"
+          (click)="nextStep()"
+          class="nav-btn">
+          Próximo
+          <ion-icon name="arrow-forward" slot="end"></ion-icon>
+        </ion-button>
+      } @else if (currentStep === 2) {
+        <!-- Botões de navegação dos sub-steps -->
+        <ion-button 
+          [disabled]="!canProceedToNextStep() || isLoading"
+          (click)="nextSubStep()"
+          class="nav-btn">
+          @if (currentSubStep < totalSubSteps) {
+            Próximo
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          } @else {
+            Avançar
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          }
+        </ion-button>
+      } @else if (currentStep === 3) {
+        <ion-button 
+          color="success"
+          [disabled]="!canProceedToNextStep() || isLoading"
+          (click)="confirmarOrcamento()"
+          class="nav-btn">
+          <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+          Confirmar Orçamento
+        </ion-button>
+      } @else if (currentStep === 4 && !propostaGerada) {
+        <ion-button 
+          color="success"
+          [disabled]="!canProceedToNextStep() || isLoading"
+          (click)="finalizarOrcamento()"
+          class="nav-btn">
+          @if (isLoading) {
+            <ion-spinner name="crescent" color="light"></ion-spinner>
+            <span class="ml-2">Gerando...</span>
+          } @else {
+            <ion-icon name="document-text" slot="start"></ion-icon>
+            Gerar Proposta Oficial
+          }
+        </ion-button>
+      } @else if (currentStep === 4 && propostaGerada) {
+        <div class="footer-buttons-group">
           <ion-button 
             color="success"
             (click)="verPropostaCompleta()"
@@ -172,18 +213,11 @@
             <ion-icon name="refresh" slot="start"></ion-icon>
             Novo Orçamento
           </ion-button>
-        } @else if (currentStep < totalSteps) {
-          <ion-button 
-            [disabled]="!canProceedToNextStep() || isLoading"
-            (click)="nextStep()"
-            class="nav-btn">
-            Próximo
-            <ion-icon name="arrow-forward" slot="end"></ion-icon>
-          </ion-button>
-        }
-      </div>
-    }
-
-  </form>
-</ion-content>
+        </div>
+      } @else {
+        <div class="nav-btn-spacer"></div>
+      }
+    </div>
+  </ion-toolbar>
+</ion-footer>
 

@@ -44,26 +44,6 @@
       </app-periodo-selector>
     }
 
-    <!-- Sub-step Navigation -->
-    <div class="sub-step-nav">
-      @if (currentSubStep > 1) {
-        <ion-button fill="outline" (click)="previousSubStep()">
-          <ion-icon name="arrow-back" slot="start"></ion-icon>
-          Anterior
-        </ion-button>
-      } @else {
-        <div></div>
-      }
-      <ion-button (click)="nextSubStep()">
-        @if (currentSubStep < totalSubSteps) {
-          Próximo
-          <ion-icon name="arrow-forward" slot="end"></ion-icon>
-        } @else {
-          Avançar
-          <ion-icon name="arrow-forward" slot="end"></ion-icon>
-        }
-      </ion-button>
-    </div>
   </ion-card-content>
 </ion-card>
 

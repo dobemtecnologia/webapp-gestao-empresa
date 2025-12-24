@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { LoadingController, ToastController, MenuController } from '@ionic/angular';
@@ -28,6 +28,10 @@ export class FormularioOrcamentoPage implements OnInit {
   formulario!: FormGroup;
   currentStep = 1; // 1: Dados Cliente, 2: Configuração, 3: Revisão, 4: Gerar Proposta
   totalSteps = 4;
+
+  // Estado dos sub-steps do passo 2 (Configuração)
+  currentSubStep = 1;
+  totalSubSteps = 5;
 
   // Estado do formulário
   resultadoSimulacao?: PlanoSimulacaoResponse;
@@ -434,6 +438,10 @@ export class FormularioOrcamentoPage implements OnInit {
     if (this.canProceedToNextStep()) {
       if (this.currentStep < this.totalSteps) {
         this.currentStep++;
+        // Reset sub-step quando mudar de passo principal
+        if (this.currentStep !== 2) {
+          this.currentSubStep = 1;
+        }
       }
     }
   }
@@ -441,6 +449,13 @@ export class FormularioOrcamentoPage implements OnInit {
   previousStep() {
     if (this.currentStep > 1) {
       this.currentStep--;
+      // Reset sub-step quando mudar de passo principal
+      if (this.currentStep !== 2) {
+        this.currentSubStep = 1;
+      } else {
+        // Se voltou para o passo 2, vai para o último sub-step
+        this.currentSubStep = this.totalSubSteps;
+      }
     }
   }
 
@@ -518,6 +533,30 @@ export class FormularioOrcamentoPage implements OnInit {
   }
 
   // Eventos dos subcomponentes
+  @ViewChild('configuracaoPlano') configuracaoPlanoComponent?: any;
+
+  onSubStepChange(event: { currentSubStep: number; totalSubSteps: number }) {
+    this.currentSubStep = event.currentSubStep;
+    this.totalSubSteps = event.totalSubSteps;
+    this.cdr.detectChanges();
+  }
+
+  nextSubStep() {
+    if (this.configuracaoPlanoComponent) {
+      this.configuracaoPlanoComponent.nextSubStep();
+    }
+  }
+
+  previousSubStep() {
+    if (this.currentSubStep === 1) {
+      // Se estiver no primeiro sub-step, volta para o passo anterior
+      this.previousStep();
+    } else if (this.configuracaoPlanoComponent) {
+      // Caso contrário, volta para o sub-step anterior
+      this.configuracaoPlanoComponent.previousSubStep();
+    }
+  }
+
   onSetoresChange(setores: any[]) {
     this.formulario.patchValue({ setores });
   }
