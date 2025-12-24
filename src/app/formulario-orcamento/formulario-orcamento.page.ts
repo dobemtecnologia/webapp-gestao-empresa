@@ -208,19 +208,42 @@ export class FormularioOrcamentoPage implements OnInit {
       });
 
       // Buscar período baseado no desconto aplicado
-      const percentualDesconto = orcamento.percentualDescontoAplicado;
-      if (percentualDesconto && percentualDesconto > 0) {
-        const periodos = await firstValueFrom(
-          this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([])))
-        );
-        const periodoEncontrado = periodos.find(p => 
+      const percentualDesconto = orcamento.percentualDescontoAplicado || 0;
+      const periodos = await firstValueFrom(
+        this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([])))
+      );
+      
+      let periodoEncontrado = null;
+      
+      if (percentualDesconto > 0) {
+        // Busca período com desconto percentual
+        periodoEncontrado = periodos.find(p => 
           p.ativo && 
           p.tipoDesconto === 'PERCENTUAL' && 
           Math.abs(p.valorDesconto - percentualDesconto) < 0.01
         );
-        if (periodoEncontrado) {
-          this.formulario.patchValue({ selectedPeriod: periodoEncontrado.codigo });
-        }
+      } else {
+        // Se não há desconto, busca o período mensal (geralmente o primeiro ou com 1 mês)
+        periodoEncontrado = periodos.find(p => 
+          p.ativo && 
+          (p.meses === 1 || p.codigo === 'MENSAL' || p.nome?.toUpperCase().includes('MENSAL'))
+        );
+      }
+      
+      if (periodoEncontrado) {
+        // Define o período no formulário
+        this.formulario.patchValue({ selectedPeriod: periodoEncontrado.codigo });
+        
+        // Força a detecção de mudanças imediatamente
+        this.cdr.detectChanges();
+        
+        // Aguarda um ciclo para garantir que o componente de período foi atualizado
+        setTimeout(() => {
+          this.onPeriodoChange(periodoEncontrado!.codigo);
+          this.cdr.detectChanges();
+        }, 200);
+      } else {
+        console.warn('Período não encontrado para desconto:', percentualDesconto);
       }
 
       // Preencher dados da empresa (pode vir em empresa ou empresaDadosCnpj)

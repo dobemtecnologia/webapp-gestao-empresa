@@ -222,11 +222,11 @@ export class ResultadoOrcamentoPage implements OnInit {
   }
 
   editarProposta() {
-    // Volta para o wizard com o hash para carregar e editar
+    // Redireciona para o formulário de orçamento com o hash para carregar e editar
     const hash = this.codigoHash();
     if (hash) {
-      this.router.navigate(['/wizard'], { 
-        queryParams: { hash, action: 'edit' } 
+      this.router.navigate(['/formulario-orcamento'], { 
+        queryParams: { hash } 
       });
     } else {
       this.showToast('Hash da proposta não encontrado.', 'warning');

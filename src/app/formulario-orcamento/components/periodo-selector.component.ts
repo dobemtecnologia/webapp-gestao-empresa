@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { PlanoService } from '../../services/plano.service';
 import { PeriodoContratacao } from '../../models/periodo-contratacao.model';
@@ -29,7 +29,10 @@ export class PeriodoSelectorComponent implements OnInit, OnChanges {
     precoMensalEquivalente: number;
   }> = [];
 
-  constructor(private planoService: PlanoService) {}
+  constructor(
+    private planoService: PlanoService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['formGroup'] && this.formGroup) {
@@ -39,11 +42,30 @@ export class PeriodoSelectorComponent implements OnInit, OnChanges {
         this.baseMonthlyValue = resultado.valorMensalTotal;
         this.calcularValoresPorPeriodo();
       }
+      
+      // Observar mudanças no selectedPeriod para atualizar a UI
+      const selectedPeriod = this.formGroup.get('selectedPeriod');
+      if (selectedPeriod) {
+        selectedPeriod.valueChanges.subscribe(() => {
+          this.cdr.detectChanges();
+        });
+      }
     }
   }
 
   async ngOnInit() {
     await this.carregarPeriodos();
+    
+    // Verificar se já existe um período selecionado no formulário
+    if (this.formGroup) {
+      const selectedPeriod = this.formGroup.get('selectedPeriod')?.value;
+      if (selectedPeriod) {
+        // Força a detecção de mudanças para atualizar a UI
+        setTimeout(() => {
+          this.cdr.detectChanges();
+        }, 0);
+      }
+    }
   }
 
   async carregarPeriodos() {
