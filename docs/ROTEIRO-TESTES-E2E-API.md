@@ -19,7 +19,7 @@ Este documento contém um roteiro completo e detalhado de testes end-to-end para
 
 ### Variáveis de Ambiente
 ```bash
-BASE_URL=http://localhost:9000  # ou a URL da API em produção
+BASE_URL=http://localhost:8080  # ou a URL da API em produção
 API_URL=${BASE_URL}/api
 USERNAME=admin
 PASSWORD=admin
@@ -753,4 +753,6 @@ Este fluxo testa o processo completo de criação de um orçamento, desde a busc
 ## Contato e Suporte
 
 Para dúvidas ou sugestões sobre este roteiro de testes, consulte a documentação da API ou entre em contato com a equipe de desenvolvimento.
+
+
 

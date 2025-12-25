@@ -1396,11 +1396,34 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
   // ... (restante dos métodos auxiliares mantidos igual)
 
   private async loginAutomatico(): Promise<void> {
-    if (this.authService.isAuthenticated()) return;
+    // Verifica se já está autenticado
+    if (this.authService.isAuthenticated()) {
+      console.log('✅ Já autenticado, token presente');
+      return;
+    }
+    
+    console.log('🔐 Iniciando login automático...');
     const credentials: LoginVM = { username: 'admin', password: 'admin', rememberMe: false };
+    
     try {
-      await firstValueFrom(this.authService.login(credentials).pipe(catchError(() => of(null))));
-    } catch (e) { console.error(e); }
+      const response = await firstValueFrom(
+        this.authService.login(credentials).pipe(
+          catchError((error) => {
+            console.error('❌ Erro no login automático:', error);
+            return of(null);
+          })
+        )
+      );
+      
+      if (response && response.id_token) {
+        console.log('✅ Login automático realizado com sucesso');
+        console.log('🔑 Token obtido:', response.id_token.substring(0, 50) + '...');
+      } else {
+        console.warn('⚠️ Login automático retornou sem token');
+      }
+    } catch (e) {
+      console.error('❌ Erro ao executar login automático:', e);
+    }
   }
 
   carregarSetores() {

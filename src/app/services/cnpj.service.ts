@@ -20,6 +20,14 @@ export class CnpjService {
     // Remove formatação do CNPJ (apenas números)
     const cnpjLimpo = cnpj.replace(/\D/g, '');
     
-    return this.http.get<CNPJResponse>(`${this.apiUrl}/${cnpjLimpo}`);
+    const url = `${this.apiUrl}/${cnpjLimpo}`;
+    console.log('🔍 Consultando CNPJ:', {
+      cnpjOriginal: cnpj,
+      cnpjLimpo: cnpjLimpo,
+      url: url,
+      apiUrl: this.apiUrl
+    });
+    
+    return this.http.get<CNPJResponse>(url);
   }
 }

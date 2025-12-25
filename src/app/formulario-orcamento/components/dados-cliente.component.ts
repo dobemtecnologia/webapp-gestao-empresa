@@ -106,11 +106,25 @@ export class DadosClienteComponent {
       loading.dismiss();
       this.isConsultingCNPJ = false;
       
+      console.error('Erro ao consultar CNPJ:', error);
+      console.error('Status:', error.status);
+      console.error('URL chamada:', error.url || 'N/A');
+      console.error('Mensagem:', error.message);
+      
       let errorMessage = 'Erro ao consultar CNPJ. Tente novamente.';
-      if (error.status === 404) {
+      
+      if (error.status === 0) {
+        errorMessage = 'Não foi possível conectar ao servidor. Verifique se a API está rodando.';
+      } else if (error.status === 404) {
         errorMessage = 'CNPJ não encontrado. Verifique se o CNPJ está correto.';
+      } else if (error.status === 401 || error.status === 403) {
+        errorMessage = 'Erro de autenticação. Faça login novamente.';
+      } else if (error.status === 500) {
+        errorMessage = 'Erro interno do servidor. Tente novamente mais tarde.';
       } else if (error.error?.message) {
         errorMessage = error.error.message;
+      } else if (error.message) {
+        errorMessage = `Erro: ${error.message}`;
       }
       
       this.showToast(errorMessage, 'danger');
@@ -129,4 +143,6 @@ export class DadosClienteComponent {
     await toast.present();
   }
 }
+
+
 
