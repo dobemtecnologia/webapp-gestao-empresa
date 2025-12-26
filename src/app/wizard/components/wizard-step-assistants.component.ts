@@ -124,7 +124,13 @@ export class WizardStepAssistantsComponent implements OnInit {
 
     // Busca detalhes completos dos assistentes que precisam
     if (assistentesParaBuscar.size > 0) {
-      this.planoService.getAssistentes('id,asc').subscribe({
+      // Usa endpoint por setores se houver setores selecionados
+      const setoresIds = setores.map(s => s.id);
+      const assistentesObservable = setoresIds.length > 0
+        ? this.planoService.getAssistentesPorSetores(setoresIds)
+        : this.planoService.getAssistentes('id,asc');
+      
+      assistentesObservable.subscribe({
         next: (assistentesCompletos) => {
           // Atualiza os assistentes nos setores com os nomes corretos
           setores.forEach(setor => {

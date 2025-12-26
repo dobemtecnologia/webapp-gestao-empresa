@@ -49,7 +49,13 @@ export class WizardStepReviewComponent {
       next: (infras) => (this.infraestruturas = infras),
     });
 
-    this.planoService.getAssistentes('id,asc').subscribe({
+    // Usa endpoint por setores se houver setores selecionados
+    const setoresIds = this.selectedSectors().map(s => s.id);
+    const assistentesObservable = setoresIds.length > 0
+      ? this.planoService.getAssistentesPorSetores(setoresIds)
+      : this.planoService.getAssistentes('id,asc');
+    
+    assistentesObservable.subscribe({
       next: (assist) => (this.assistentes = assist),
     });
 

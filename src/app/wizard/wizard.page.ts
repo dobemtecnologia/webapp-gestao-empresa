@@ -324,9 +324,10 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
             console.log('🔍 Setor sem assistentes na resposta. Buscando assistentes separadamente...');
             
             try {
-              // Busca todos os assistentes com eagerload para ter os relacionamentos
+              // Busca assistentes do setor específico usando endpoint por setores
+              const setorId = setorCompleto.id;
               const todosAssistentes: any[] = await firstValueFrom(
-                this.planoService.getAssistentes('id,asc')
+                this.planoService.getAssistentesPorSetores([setorId]).pipe(catchError(() => of([])))
               );
               
               console.log(`📋 Total de assistentes encontrados na API: ${todosAssistentes.length}`);
@@ -608,8 +609,12 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
         const assistentesAtivos = this.assistants().filter(a => a.quantity > 0);
         if (assistentesAtivos.length > 0) {
           try {
+            // Busca assistentes usando endpoint por setores se houver setores selecionados
+            const setoresIds = this.selectedSectors().map(s => s.id);
             const assistentesCompletos = await firstValueFrom(
-              this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])))
+              setoresIds.length > 0
+                ? this.planoService.getAssistentesPorSetores(setoresIds).pipe(catchError(() => of([])))
+                : this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])))
             );
             const assistentes = assistentesAtivos
               .map(a => {
@@ -691,10 +696,16 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
 
   private async gerarResumoCompleto(): Promise<string> {
     // Busca dados necessários para o resumo
+    // Usa endpoint por setores se houver setores selecionados
+    const setoresIds = this.selectedSectors().map(s => s.id);
+    const assistentesObservable = setoresIds.length > 0
+      ? this.planoService.getAssistentesPorSetores(setoresIds).pipe(catchError(() => of([])))
+      : this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])));
+    
     const [periodos, infraestruturas, assistentes, canals] = await Promise.all([
       firstValueFrom(this.planoService.getPeriodosContratacao('id,asc').pipe(catchError(() => of([])))),
       firstValueFrom(this.planoService.getInfraestruturas('id,asc').pipe(catchError(() => of([])))),
-      firstValueFrom(this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])))),
+      firstValueFrom(assistentesObservable),
       firstValueFrom(this.planoService.getCanals('id,asc').pipe(catchError(() => of([]))))
     ]);
 
@@ -1032,9 +1043,29 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
 
   private async mapearItensParaEstado(itens: ItemOrcamentoDTO[]) {
     // Busca todos os setores e assistentes para mapear corretamente
+    // Extrai IDs de setores dos itens de assistentes para usar endpoint específico
+    const setoresIdsDosItens = new Set<number>();
+    itens.forEach(item => {
+      if (item.tipoItem === 'ASSISTENTE') {
+        // Busca setores relacionados ao assistente através dos setores já selecionados
+        const setoresAtuais = this.selectedSectors();
+        setoresAtuais.forEach(setor => {
+          if (setor.assistentes?.some(a => a.id === item.referenciaId)) {
+            setoresIdsDosItens.add(setor.id);
+          }
+        });
+      }
+    });
+    
+    // Usa endpoint por setores se houver setores identificados, senão usa genérico
+    const setoresIdsArray = Array.from(setoresIdsDosItens);
+    const assistentesObservable = setoresIdsArray.length > 0
+      ? this.planoService.getAssistentesPorSetores(setoresIdsArray).pipe(catchError(() => of([])))
+      : this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])));
+    
     const [setores, assistentes, canals] = await Promise.all([
       firstValueFrom(this.setorService.getAllSetors('id,asc', 0, 100, true).pipe(catchError(() => of([])))),
-      firstValueFrom(this.planoService.getAssistentes('id,asc').pipe(catchError(() => of([])))),
+      firstValueFrom(assistentesObservable),
       firstValueFrom(this.planoService.getCanals('id,asc').pipe(catchError(() => of([]))))
     ]);
 
