@@ -78,12 +78,34 @@ export class FormularioOrcamentoPage implements OnInit {
   }
 
   private async loginAutomatico(): Promise<void> {
-    if (this.authService.isAuthenticated()) return;
+    if (this.authService.isAuthenticated()) {
+      console.log('✅ Usuário já autenticado');
+      return;
+    }
+    
+    console.log('🔐 Iniciando login automático...');
     const credentials: LoginVM = { username: 'admin', password: 'admin', rememberMe: false };
+    
     try {
-      await firstValueFrom(this.authService.login(credentials).pipe(catchError(() => of(null))));
+      const response = await firstValueFrom(
+        this.authService.login(credentials).pipe(
+          catchError((error) => {
+            console.error('❌ Erro no login automático:', error);
+            console.error('Status:', error.status);
+            console.error('Mensagem:', error.message);
+            return of(null);
+          })
+        )
+      );
+      
+      if (response && response.id_token) {
+        console.log('✅ Login automático realizado com sucesso');
+        console.log('Token salvo:', response.id_token.substring(0, 50) + '...');
+      } else {
+        console.warn('⚠️ Login automático não retornou token');
+      }
     } catch (e) { 
-      console.error(e); 
+      console.error('❌ Exceção no login automático:', e); 
     }
   }
 
