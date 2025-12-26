@@ -266,40 +266,47 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
         situacaoCadastral: cnpjData.situacaoCadastral
       });
 
-      // Busca o setor completo pelo ID sugerido (com assistentes carregados)
+      // Usa diretamente o setor sugerido da resposta do CNPJ
       if (cnpjData.setorSugerido && cnpjData.setorSugerido.id) {
         try {
-          // Primeiro tenta buscar o setor pelo ID com eagerload para garantir assistentes
-          let setorCompleto: SetorDTO;
+          // Cria objeto do setor a partir dos dados retornados pelo CNPJ
+          let setorCompleto: SetorDTO = {
+            id: cnpjData.setorSugerido.id,
+            nome: cnpjData.setorSugerido.nome,
+            ativo: true,
+            assistentes: [],
+            agentes: []
+          };
           
+          // Busca apenas os assistentes deste setor específico (sem buscar todos os setores)
           try {
-            setorCompleto = await firstValueFrom(
-              this.setorService.getSetorById(cnpjData.setorSugerido.id, true)
+            const assistentesDoSetor = await firstValueFrom(
+              this.planoService.getAssistentesPorSetores([cnpjData.setorSugerido.id]).pipe(
+                catchError(() => of([]))
+              )
             );
-            console.log('Setor buscado pelo ID:', setorCompleto);
+            
+            setorCompleto.assistentes = assistentesDoSetor;
+            console.log(`✅ Setor "${setorCompleto.nome}" (ID: ${setorCompleto.id}) com ${assistentesDoSetor.length} assistente(s)`);
           } catch (error) {
-            console.warn('Erro ao buscar setor pelo ID, tentando lista completa...', error);
-            // Fallback: busca todos os setores
-            const todosSetores: SetorDTO[] = await firstValueFrom(
-              this.setorService.getAllSetors('id,asc', 0, 100, true)
-            );
-            const setorEncontrado = todosSetores.find(s => s.id === cnpjData.setorSugerido!.id);
-            if (!setorEncontrado) {
-              throw new Error(`Setor com ID ${cnpjData.setorSugerido.id} não encontrado`);
-            }
-            setorCompleto = setorEncontrado;
+            console.warn('Erro ao buscar assistentes do setor:', error);
           }
           
-          // Se ainda não tiver assistentes, tenta buscar da lista completa
+          // Se não encontrou assistentes, tenta buscar o setor completo pelo ID (apenas este setor)
           if (!setorCompleto.assistentes || setorCompleto.assistentes.length === 0) {
-            console.log('Setor sem assistentes, buscando na lista completa com eagerload...');
-            const todosSetores: SetorDTO[] = await firstValueFrom(
-              this.setorService.getAllSetors('id,asc', 0, 100, true)
-            );
-            const setorDaLista = todosSetores.find(s => s.id === cnpjData.setorSugerido!.id);
-            if (setorDaLista && setorDaLista.assistentes && setorDaLista.assistentes.length > 0) {
-              setorCompleto = setorDaLista;
-              console.log('✅ Setor encontrado na lista com assistentes!');
+            try {
+              const setorComId = await firstValueFrom(
+                this.setorService.getSetorById(cnpjData.setorSugerido.id, true).pipe(
+                  catchError(() => of(null))
+                )
+              );
+              
+              if (setorComId && setorComId.assistentes && setorComId.assistentes.length > 0) {
+                setorCompleto = setorComId;
+                console.log('✅ Setor encontrado pelo ID com assistentes!');
+              }
+            } catch (error) {
+              console.warn('Erro ao buscar setor pelo ID:', error);
             }
           }
           
@@ -308,145 +315,89 @@ export class WizardPage implements OnInit, OnDestroy, ViewWillEnter {
             id: setorCompleto.id,
             nome: setorCompleto.nome,
             temAssistentes: !!setorCompleto.assistentes,
-            quantidadeAssistentes: setorCompleto.assistentes?.length || 0,
-            assistentes: setorCompleto.assistentes
+            quantidadeAssistentes: setorCompleto.assistentes?.length || 0
           });
           
           if (!setorCompleto.assistentes || setorCompleto.assistentes.length === 0) {
-            console.warn(`⚠️ Setor ${setorCompleto.nome} (ID: ${setorCompleto.id}) não possui assistentes vinculados na resposta da API.`);
-            console.warn('Isso pode indicar que: 1) O setor realmente não tem assistentes no banco, ou 2) A API não está retornando os relacionamentos mesmo com eagerload.');
+            console.warn(`⚠️ Setor ${setorCompleto.nome} (ID: ${setorCompleto.id}) não possui assistentes vinculados.`);
           } else {
-            console.log(`✅ Setor ${setorCompleto.nome} encontrado com ${setorCompleto.assistentes.length} assistentes carregados.`);
+            console.log(`✅ Setor ${setorCompleto.nome} encontrado com ${setorCompleto.assistentes.length} assistente(s).`);
           }
           
-          // Se o setor não tiver assistentes carregados, busca separadamente
+          // Se ainda não tiver assistentes após todas as tentativas, o setor realmente não tem assistentes
           if (!setorCompleto.assistentes || setorCompleto.assistentes.length === 0) {
-            console.log('🔍 Setor sem assistentes na resposta. Buscando assistentes separadamente...');
-            
-            try {
-              // Busca assistentes do setor específico usando endpoint por setores
-              const setorId = setorCompleto.id;
-              const todosAssistentes: any[] = await firstValueFrom(
-                this.planoService.getAssistentesPorSetores([setorId]).pipe(catchError(() => of([])))
-              );
-              
-              console.log(`📋 Total de assistentes encontrados na API: ${todosAssistentes.length}`);
-              
-              // Inspeciona a estrutura de um assistente para entender o relacionamento
-              if (todosAssistentes.length > 0) {
-                console.log('🔬 Estrutura do primeiro assistente:', todosAssistentes[0]);
-              }
-              
-              // Filtra assistentes que pertencem ao setor
-              // O AssistenteDTO tem um campo 'setors' (array de SetorDTO)
-              const assistentesDoSetor = todosAssistentes.filter((assistente: any) => {
-                // Verifica se o array 'setors' do assistente contém o setor selecionado
-                const temRelacao = assistente.setors?.some((s: any) => {
-                  const setorId = typeof s === 'object' ? s.id : s;
-                  return setorId === setorCompleto.id;
-                }) || false;
-                
-                if (temRelacao) {
-                  console.log(`✅ Assistente "${assistente.nome}" (ID: ${assistente.id}) pertence ao setor ${setorCompleto.nome}`);
-                }
-                
-                return temRelacao;
-              });
-              
-              console.log(`📊 Assistentes filtrados para o setor ${setorCompleto.nome}: ${assistentesDoSetor.length}`);
-              
-              // Atualiza o setor com os assistentes encontrados
-              if (assistentesDoSetor.length > 0) {
-                setorCompleto.assistentes = assistentesDoSetor.map(a => ({
-                  id: a.id,
-                  nome: a.nome,
-                  descricao: a.descricao,
-                  ativo: a.ativo !== false,
-                  promptBase: a.promptBase,
-                  modeloIA: a.modeloIA,
-                  status: a.status
-                }));
-                console.log(`✅ ${assistentesDoSetor.length} assistentes vinculados ao setor ${setorCompleto.nome}`);
-              } else {
-                console.warn(`⚠️ Nenhum assistente encontrado vinculado ao setor ${setorCompleto.nome} (ID: ${setorCompleto.id})`);
-                console.warn('💡 Possíveis causas:');
-                console.warn('   1. O setor realmente não tem assistentes no banco');
-                console.warn('   2. O relacionamento usa um campo diferente');
-                console.warn('   3. Os assistentes precisam ser buscados de outra forma');
-              }
-            } catch (error) {
-              console.error('❌ Erro ao buscar assistentes:', error);
-            }
+            // Mantém o setor mesmo sem assistentes, pois pode ser selecionado pelo usuário
+            console.log(`ℹ️ Setor ${setorCompleto.nome} será adicionado sem assistentes. O usuário pode adicionar assistentes manualmente.`);
           }
           
-          // Seleciona o setor automaticamente (com assistentes já carregados)
-          this.wizardState.toggleSector(setorCompleto);
-          
-          // Aguarda um pouco para garantir que o signal seja atualizado
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // Verifica novamente após atualizar o estado
-          const setoresAposSelecao = this.wizardState.selectedSectors();
-          const assistentesAposSelecao = this.wizardState.availableAssistants();
-          
-          console.log('=== VERIFICAÇÃO APÓS SELEÇÃO ===');
-          console.log('Setores selecionados no estado:', setoresAposSelecao);
-          console.log('Quantidade de setores:', setoresAposSelecao.length);
-          setoresAposSelecao.forEach(setor => {
-            console.log(`  - Setor: ${setor.nome} (ID: ${setor.id})`);
-            console.log(`    Tem assistentes?: ${!!setor.assistentes}`);
-            console.log(`    Quantidade assistentes: ${setor.assistentes?.length || 0}`);
-            if (setor.assistentes && setor.assistentes.length > 0) {
-              console.log(`    IDs dos assistentes:`, setor.assistentes.map(a => a.id));
+          // Adiciona o setor ao estado (mesmo sem assistentes, pois o setor foi sugerido pelo CNPJ)
+          if (setorCompleto) {
+            // Verifica se o setor já está selecionado
+            const setoresAtuais = this.selectedSectors();
+            const jaEstaSelecionado = setoresAtuais.some(s => s.id === setorCompleto.id);
+            
+            if (!jaEstaSelecionado) {
+              // Adiciona o setor sugerido aos setores selecionados
+              this.wizardState.setSelectedSectors([...setoresAtuais, setorCompleto]);
+              console.log(`✅ Setor "${setorCompleto.nome}" adicionado automaticamente baseado no CNPJ.`);
             }
-          });
-          console.log('Assistentes disponíveis (computed):', assistentesAposSelecao);
-          console.log('Quantidade assistentes disponíveis:', assistentesAposSelecao.length);
-          
-          this.tempCNPJ = '';
-          this.scrollToBottom();
-
-          // Mensagem da Eva confirmando a seleção
-          setTimeout(() => {
-            this.isTyping = false;
-            const nomeEmpresa = cnpjData.nomeFantasia || cnpjData.razaoSocial;
-            const nomeSetor = cnpjData.setorSugerido.nome;
             
-            // Verifica novamente antes de mostrar a mensagem
-            const assistentesFinais = this.wizardState.availableAssistants();
+            // Aguarda um pouco para garantir que o signal seja atualizado
+            await new Promise(resolve => setTimeout(resolve, 100));
             
-            if (assistentesFinais.length > 0) {
-              this.wizardState.addMessage({
-                sender: 'eva',
-                type: 'text',
-                content: `Perfeito, <strong>${this.wizardState.userName()}</strong>! 💼<br>Localizei a empresa <strong>${nomeEmpresa}</strong>. Como vocês atuam no ramo de <strong>${nomeSetor}</strong>, já preparei as melhores configurações para vocês. Vamos prosseguir?`
-              });
+            // Verifica novamente após atualizar o estado
+            const setoresAposSelecao = this.wizardState.selectedSectors();
+            const assistentesAposSelecao = this.wizardState.availableAssistants();
+            
+            console.log('=== VERIFICAÇÃO APÓS SELEÇÃO ===');
+            console.log('Setores selecionados no estado:', setoresAposSelecao.length);
+            console.log('Assistentes disponíveis:', assistentesAposSelecao.length);
+            
+            this.tempCNPJ = '';
+            this.scrollToBottom();
 
-              // Avança automaticamente para o passo de Assistentes após delay
-              setTimeout(() => {
-                this.wizardState.setCurrentStep(2); // Passo 2: Assistentes
-                this.scrollToBottom();
+            // Mensagem da Eva confirmando a seleção
+            setTimeout(() => {
+              this.isTyping = false;
+              const nomeEmpresa = cnpjData.nomeFantasia || cnpjData.razaoSocial;
+              const nomeSetor = cnpjData.setorSugerido.nome;
+              
+              // Verifica novamente antes de mostrar a mensagem
+              const assistentesFinais = this.wizardState.availableAssistants();
+            
+              if (assistentesFinais.length > 0) {
+                this.wizardState.addMessage({
+                  sender: 'eva',
+                  type: 'text',
+                  content: `Perfeito, <strong>${this.wizardState.userName()}</strong>! 💼<br>Localizei a empresa <strong>${nomeEmpresa}</strong>. Como vocês atuam no ramo de <strong>${nomeSetor}</strong>, já preparei as melhores configurações para vocês. Vamos prosseguir?`
+                });
+
+                // Avança automaticamente para o passo de Assistentes após delay
+                setTimeout(() => {
+                  this.wizardState.setCurrentStep(2); // Passo 2: Assistentes
+                  this.scrollToBottom();
+                  
+                  setTimeout(() => {
+                    this.showEvaResponse('Ótima escolha! 🚀<br>Analisei seus setores e encontrei estes especialistas. <strong>Quantos assistentes</strong> de cada tipo você vai precisar?');
+                  }, 500);
+                }, 2000);
+              } else {
+                // Se não houver assistentes, volta para seleção manual de setores
+                this.wizardState.addMessage({
+                  sender: 'eva',
+                  type: 'text',
+                  content: `Desculpe, <strong>${this.wizardState.userName()}</strong> 😔<br>Localizei a empresa <strong>${nomeEmpresa}</strong> e identifiquei o setor <strong>${nomeSetor}</strong>, mas não encontrei assistentes configurados para esse setor. Você pode selecionar outro setor manualmente?`
+                });
                 
                 setTimeout(() => {
-                  this.showEvaResponse('Ótima escolha! 🚀<br>Analisei seus setores e encontrei estes especialistas. <strong>Quantos assistentes</strong> de cada tipo você vai precisar?');
-                }, 500);
-              }, 2000);
-            } else {
-              // Se não houver assistentes, volta para seleção manual de setores
-              this.wizardState.addMessage({
-                sender: 'eva',
-                type: 'text',
-                content: `Desculpe, <strong>${this.wizardState.userName()}</strong> 😔<br>Localizei a empresa <strong>${nomeEmpresa}</strong> e identifiquei o setor <strong>${nomeSetor}</strong>, mas não encontrei assistentes configurados para esse setor. Você pode selecionar outro setor manualmente?`
-              });
-              
-              setTimeout(() => {
-                // Carrega setores apenas quando for realmente para a seleção manual
-                this.carregarSetores();
-                this.wizardState.setCurrentStep(1);
-                this.scrollToBottom();
-              }, 2000);
-            }
-          }, 1000);
+                  // Carrega setores apenas quando for realmente para a seleção manual
+                  this.carregarSetores();
+                  this.wizardState.setCurrentStep(1);
+                  this.scrollToBottom();
+                }, 2000);
+              }
+            }, 1000);
+          }
           
         } catch (setorError) {
           console.error('Erro ao buscar setor:', setorError);

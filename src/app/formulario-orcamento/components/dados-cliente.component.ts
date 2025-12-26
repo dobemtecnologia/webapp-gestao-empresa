@@ -84,23 +84,21 @@ export class DadosClienteComponent {
         }
       });
 
-      // Buscar setor sugerido
+      // Usa diretamente o setor sugerido da resposta do CNPJ (sem buscar todos os setores)
       if (cnpjData.setorSugerido && cnpjData.setorSugerido.id) {
-        try {
-          const setorCompleto = await firstValueFrom(
-            this.setorService.getSetorById(cnpjData.setorSugerido.id, true).pipe(
-              catchError(() => of(null))
-            )
-          );
+        // Cria objeto do setor a partir dos dados retornados pelo CNPJ
+        const setorSugerido: SetorDTO = {
+          id: cnpjData.setorSugerido.id,
+          nome: cnpjData.setorSugerido.nome,
+          ativo: true,
+          assistentes: [],
+          agentes: []
+        };
 
-          if (setorCompleto) {
-            this.setorSugerido = setorCompleto;
-            this.cnpjConsultado.emit([setorCompleto]);
-            this.showToast(`Setor sugerido: ${setorCompleto.nome}`, 'success');
-          }
-        } catch (error) {
-          console.error('Erro ao buscar setor:', error);
-        }
+        this.setorSugerido = setorSugerido;
+        this.cnpjConsultado.emit([setorSugerido]);
+        this.showToast(`Setor sugerido: ${setorSugerido.nome}`, 'success');
+        console.log(`✅ Setor sugerido usado diretamente da resposta do CNPJ: ${setorSugerido.nome} (ID: ${setorSugerido.id})`);
       }
 
       loading.dismiss();
