@@ -464,6 +464,7 @@ export class FormularioOrcamentoPage implements OnInit {
     if (this.currentStep > 1) {
       this.currentStep--;
     }
+    this.orcamentoConfirmado = false;
   }
 
   canProceedToNextStep(): boolean {
@@ -603,12 +604,11 @@ export class FormularioOrcamentoPage implements OnInit {
   }
 
   verPropostaCompleta() {
-    if (this.hashProposta) {
-      this.router.navigate(['/resultado-orcamento'], { queryParams: { hash: this.hashProposta } });
+   // if (this.hashProposta) {
+     // this.router.navigate(['/resultado-orcamento'], { queryParams: { hash: this.hashProposta } });
 
       //window.location.href = `/resultado-orcamento?hash=${this.hashProposta}`;
-
-    }
+    //}
   }
 
   novoOrcamento() {

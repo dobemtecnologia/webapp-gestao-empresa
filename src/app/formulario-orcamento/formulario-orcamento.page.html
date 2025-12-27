@@ -158,6 +158,16 @@
      
       
       @if (currentStep === 4 && orcamentoConfirmado) {
+
+        <ion-button 
+        expand="block" 
+        fill="outline" 
+        (click)="previousStep()"
+        >
+        <ion-icon name="arrow-back" slot="start"></ion-icon>
+        Anterior
+      </ion-button>
+
         <ion-button 
           color="success"
           (click)="verPropostaCompleta()"
