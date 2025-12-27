@@ -76,4 +76,9 @@ export class PlanoService {
       })
     );
   }
+
+  getAgenteAssistentes(eagerload: boolean = true): Observable<any[]> {
+    const params = new HttpParams().set('eagerload', eagerload.toString());
+    return this.http.get<any[]>(`${this.baseApiUrl}/agente-assistentes`, { params });
+  }
 }

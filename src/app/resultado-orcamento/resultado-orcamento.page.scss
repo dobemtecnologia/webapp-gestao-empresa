@@ -147,6 +147,207 @@
   color: #ffc107;
 }
 
+.card-discount {
+  margin-top: 8px;
+  
+  .discount-badge {
+    font-size: 12px;
+    color: #2ed573;
+    background: rgba(46, 213, 115, 0.15);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+}
+
+// Summary Section
+.summary-section {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.summary-card {
+  background: #121212;
+  border: 1px solid #222;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.summary-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #222;
+
+  ion-icon {
+    font-size: 24px;
+    color: #0098da;
+  }
+}
+
+.summary-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.summary-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px solid #1a1a1a;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.summary-label {
+  font-weight: 600;
+  color: #888;
+  font-size: 14px;
+  min-width: 140px;
+}
+
+.summary-value {
+  color: #e0e0e0;
+  text-align: right;
+  flex: 1;
+  word-break: break-word;
+}
+
+// Values Card
+.values-card {
+  background: linear-gradient(135deg, rgba(0, 152, 218, 0.1) 0%, rgba(0, 152, 218, 0.05) 100%);
+  border-color: rgba(0, 152, 218, 0.3);
+}
+
+.values-content {
+  .value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #1a1a1a;
+    min-height: 48px;
+
+    &:first-child {
+      padding-top: 0;
+    }
+  }
+
+  .value-label {
+    font-weight: 500;
+    color: #888;
+    font-size: 14px;
+    flex: 1;
+  }
+
+  .value-amount {
+    font-weight: 600;
+    color: #999;
+    font-size: 16px;
+    text-align: right;
+    white-space: nowrap;
+    margin-left: 16px;
+
+    &.value-highlight {
+      color: #2ed573;
+      font-size: 20px;
+      font-weight: 700;
+    }
+  }
+
+  .discount-section {
+    background: rgba(46, 213, 115, 0.1);
+    padding: 16px;
+    border-radius: 8px;
+    margin: 16px 0;
+    border: 1px solid rgba(46, 213, 115, 0.2);
+
+    .discount-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(46, 213, 115, 0.2);
+      min-height: 48px;
+
+      .discount-label {
+        font-weight: 500;
+        color: #2e7d32;
+        font-size: 14px;
+        flex: 1;
+      }
+
+      .discount-amount {
+        font-weight: 600;
+        color: #2e7d32;
+        font-size: 16px;
+        text-align: right;
+        white-space: nowrap;
+        margin-left: 16px;
+      }
+    }
+
+    .value-final {
+      border-bottom: none;
+      padding-bottom: 0;
+      margin-bottom: 0;
+      min-height: 56px;
+
+      .value-label {
+        color: #2e7d32;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .total-initial-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #222;
+
+    .total-initial {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(0, 152, 218, 0.2) 0%, rgba(0, 152, 218, 0.1) 100%);
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 152, 218, 0.2);
+
+      .total-label {
+        font-weight: 700;
+        color: #ffffff;
+        font-size: 16px;
+        letter-spacing: 0.3px;
+      }
+
+      .total-amount {
+        font-weight: 700;
+        color: #0098da;
+        font-size: 24px;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+}
+
 // Breakdown Section
 .breakdown-section {
   margin-bottom: 32px;
@@ -189,13 +390,6 @@
   }
 }
 
-.add-item-btn {
-  --color: #0098da;
-  --padding-start: 8px;
-  --padding-end: 8px;
-  margin: 0;
-  font-size: 24px;
-}
 
 .items-list {
   display: flex;
@@ -265,27 +459,6 @@
   text-align: center;
 }
 
-.quantity-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  ion-button {
-    --padding-start: 4px;
-    --padding-end: 4px;
-    --color: #0098da;
-    margin: 0;
-    font-size: 20px;
-  }
-}
-
-.remove-btn {
-  --color: #ff4444;
-  --padding-start: 8px;
-  --padding-end: 8px;
-  margin: 0;
-  font-size: 20px;
-}
 
 .item-meta {
   display: flex;
@@ -293,6 +466,38 @@
   flex-wrap: wrap;
   font-size: 13px;
   color: #888;
+  margin-top: 8px;
+}
+
+.item-agentes {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #1a1a1a;
+
+  .agentes-label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .agentes-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .agente-badge {
+    background: rgba(0, 152, 218, 0.2);
+    color: #0098da;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid rgba(0, 152, 218, 0.3);
+  }
 }
 
 .item-type {
@@ -396,39 +601,16 @@
   --border-radius: 12px;
   font-weight: 600;
   text-transform: none;
-  
-  &.save-btn {
-    --background: #0098da;
-    --color: #ffffff;
-    height: 48px;
-    animation: pulse 2s infinite;
-  }
+  height: 48px;
   
   &.approve-btn {
     --background: #2ed573;
     --color: #000000;
-    height: 48px;
-  }
-  
-  &.consultor-btn {
-    --border-color: #0098da;
-    --color: #0098da;
-    height: 48px;
   }
   
   &.edit-btn {
-    --color: #888;
-    height: 40px;
-    font-size: 14px;
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
+    --border-color: #ffc107;
+    --color: #ffc107;
   }
 }
 
@@ -440,6 +622,67 @@
   
   .financial-cards {
     grid-template-columns: 1fr;
+  }
+  
+  .summary-card {
+    padding: 16px;
+  }
+
+  .summary-row {
+    flex-direction: column;
+    gap: 4px;
+
+    .summary-value {
+      text-align: left;
+    }
+  }
+
+  .values-content {
+    .value-row {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 4px;
+
+      .value-amount {
+        align-self: flex-end;
+      }
+    }
+
+    .discount-section {
+      .discount-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 4px;
+
+        .discount-amount {
+          align-self: flex-end;
+        }
+      }
+
+      .value-final {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 4px;
+
+        .value-highlight {
+          align-self: flex-end;
+        }
+      }
+    }
+
+    .total-initial-section {
+      .total-initial {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 8px;
+        text-align: left;
+
+        .total-amount {
+          align-self: flex-end;
+          font-size: 20px;
+        }
+      }
+    }
   }
   
   .item-card {
@@ -465,3 +708,4 @@
     text-align: center;
   }
 }
+

@@ -2,16 +2,30 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { OrcamentoService } from '../services/orcamento.service';
 import { PlanoService } from '../services/plano.service';
+import { SetorService } from '../services/setor.service';
 import { OrcamentoDTO, ItemOrcamentoDTO } from '../models/orcamento.model';
-import { LoadingController, ToastController, ModalController } from '@ionic/angular';
+import { PeriodoContratacao } from '../models/periodo-contratacao.model';
+import { Infraestrutura } from '../models/infraestrutura.model';
+import { LoadingController, ToastController } from '@ionic/angular';
 import { firstValueFrom, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { Assistente } from '../models/assistente.model';
-import { ModalAdicionarAssistenteComponent } from './modal-adicionar-assistente.component';
 
 interface OrcamentoComItens {
   orcamento: OrcamentoDTO;
   itens: ItemOrcamentoDTO[];
+}
+
+interface Agente {
+  id: number;
+  nome: string;
+  [key: string]: any;
+}
+
+interface AgenteAssistente {
+  id: number;
+  agente: Agente;
+  assistente: { id: number; [key: string]: any };
+  [key: string]: any;
 }
 
 @Component({
@@ -25,25 +39,29 @@ export class ResultadoOrcamentoPage implements OnInit {
   private router = inject(Router);
   private orcamentoService = inject(OrcamentoService);
   private planoService = inject(PlanoService);
+  private setorService = inject(SetorService);
   private loadingController = inject(LoadingController);
   private toastController = inject(ToastController);
-  private modalController = inject(ModalController);
 
   // Signals para reatividade
   private _orcamentoData = signal<OrcamentoComItens | null>(null);
   private _isLoading = signal<boolean>(false);
   private _codigoHash = signal<string | null>(null);
-  private _itensEditados = signal<ItemOrcamentoDTO[]>([]);
-  private _itensIniciais = signal<ItemOrcamentoDTO[]>([]);
+  
+  // Dados adicionais
+  private _periodoData = signal<PeriodoContratacao | null>(null);
+  private _infraestruturaData = signal<Infraestrutura | null>(null);
+  private _setoresData = signal<any[]>([]);
+  private _agentesPorAssistente = signal<Map<number, Agente[]>>(new Map());
 
   // Computed signals
   readonly orcamento = computed(() => this._orcamentoData()?.orcamento);
-  readonly itens = computed(() => {
-    const itensEditados = this._itensEditados();
-    return itensEditados.length > 0 ? itensEditados : (this._orcamentoData()?.itens || []);
-  });
+  readonly itens = computed(() => this._orcamentoData()?.itens || []);
   readonly isLoading = computed(() => this._isLoading());
   readonly codigoHash = computed(() => this._codigoHash());
+  readonly periodoData = computed(() => this._periodoData());
+  readonly infraestruturaData = computed(() => this._infraestruturaData());
+  readonly setoresData = computed(() => this._setoresData());
 
   // Agrupa itens por tipo
   readonly itensPorTipo = computed(() => {
@@ -55,33 +73,33 @@ export class ResultadoOrcamentoPage implements OnInit {
     };
   });
 
-  // Detecta se há mudanças
-  readonly temMudancas = computed(() => {
-    const itensAtuais = this.itens();
-    const itensIniciais = this._itensIniciais();
-    
-    if (itensAtuais.length !== itensIniciais.length) return true;
-    
-    // Compara cada item
-    return itensAtuais.some(itemAtual => {
-      const itemInicial = itensIniciais.find(i => 
-        i.id === itemAtual.id || 
-        (i.referenciaId === itemAtual.referenciaId && i.tipoItem === itemAtual.tipoItem)
-      );
-      return !itemInicial || itemInicial.quantidade !== itemAtual.quantidade;
-    });
-  });
-
   // Valores calculados
   readonly totalSetup = computed(() => {
     const itens = this.itens();
     return itens.reduce((sum, item) => sum + (item.totalSetupFechado || 0), 0);
   });
 
-  // Valor total do orçamento recalculado dinamicamente
   readonly valorTotalFechado = computed(() => {
-    const itens = this.itens();
-    return itens.reduce((sum, item) => sum + (item.totalMensalFechado || 0), 0);
+    const orc = this.orcamento();
+    return orc?.valorTotalFechado || 0;
+  });
+
+  readonly valorTotalTabela = computed(() => {
+    const orc = this.orcamento();
+    return orc?.valorTotalTabela || 0;
+  });
+
+  readonly percentualDesconto = computed(() => {
+    const orc = this.orcamento();
+    return orc?.percentualDescontoAplicado || 0;
+  });
+
+  readonly valorComDesconto = computed(() => {
+    return this.valorTotalFechado();
+  });
+
+  readonly totalInicial = computed(() => {
+    return this.valorComDesconto() + this.totalSetup();
   });
 
   readonly linkCompartilhavel = computed(() => {
@@ -90,15 +108,18 @@ export class ResultadoOrcamentoPage implements OnInit {
     return `${window.location.origin}/resultado-orcamento?hash=${hash}`;
   });
 
+  // Método para obter agentes de um assistente
+  getAgentesPorAssistente(assistenteId: number): Agente[] {
+    return this._agentesPorAssistente().get(assistenteId) || [];
+  }
+
   ngOnInit() {
     const hash = this.route.snapshot.queryParams['hash'];
     if (hash) {
       this._codigoHash.set(hash);
       this.carregarOrcamento();
-    } 
-    else {
+    } else {
       this.showToast('Hash do orçamento não encontrado.', 'danger');
-      //this.router.navigate(['/wizard']);
     }
   }
 
@@ -113,83 +134,168 @@ export class ResultadoOrcamentoPage implements OnInit {
     });
     await loading.present();
 
+    try {
     // Tenta buscar pelo endpoint customizado com hash
-    this.orcamentoService.getByHashComItens(hash).subscribe({
-      next: (data) => {
-        loading.dismiss();
-        this._isLoading.set(false);
-        this._orcamentoData.set(data);
-        // Salva uma cópia inicial dos itens para comparação de mudanças
-        this._itensIniciais.set(JSON.parse(JSON.stringify(data.itens || [])));
-        this._itensEditados.set([]); // Limpa itens editados ao carregar
-      },
-      error: (error) => {
-        // Fallback: Se o endpoint customizado não existir, tenta buscar pelo hash normal
-        // e depois buscar os itens separadamente
+      const data = await firstValueFrom(
+        this.orcamentoService.getByHashComItens(hash).pipe(
+          catchError(async (error) => {
         if (error.status === 404) {
-          this.orcamentoService.getByHash(hash).subscribe({
-            next: (orcamento) => {
-              // Se o orçamento tiver itens já carregados, usa eles
-              if (orcamento.itens && orcamento.itens.length > 0) {
-                loading.dismiss();
-                this._isLoading.set(false);
-                this._orcamentoData.set({ orcamento, itens: orcamento.itens });
-                this._itensIniciais.set(JSON.parse(JSON.stringify(orcamento.itens)));
-                this._itensEditados.set([]);
-              } else {
-                // Se não tiver itens, tenta buscar pelo ID
-                if (orcamento.id) {
-                  this.orcamentoService.getByIdComItens(orcamento.id).subscribe({
-                    next: (data) => {
+              // Fallback: busca pelo hash normal
+              const orcamento = await firstValueFrom(
+                this.orcamentoService.getByHash(hash).pipe(catchError(() => of(null)))
+              );
+              
+              if (orcamento && orcamento.id) {
+                const dataComItens = await firstValueFrom(
+                  this.orcamentoService.getByIdComItens(orcamento.id).pipe(
+                    catchError(() => of({ orcamento, itens: [] }))
+                  )
+                );
+                return dataComItens;
+              }
+            }
+            throw error;
+          })
+        )
+      );
+
                       loading.dismiss();
                       this._isLoading.set(false);
                       this._orcamentoData.set(data);
-                      this._itensIniciais.set(JSON.parse(JSON.stringify(data.itens || [])));
-                      this._itensEditados.set([]);
-                    },
-                    error: (err) => {
-                      loading.dismiss();
-                      this._isLoading.set(false);
-                      // Usa o orçamento sem itens como fallback
-                      this._orcamentoData.set({ orcamento, itens: [] });
-                      this._itensIniciais.set([]);
-                      this._itensEditados.set([]);
-                    }
-                  });
-                } else {
-                  loading.dismiss();
-                  this._isLoading.set(false);
-                  this._orcamentoData.set({ orcamento, itens: [] });
-                  this._itensIniciais.set([]);
-                  this._itensEditados.set([]);
-                }
-              }
-            },
-            error: (err) => {
+      
+      // Carregar dados adicionais em paralelo
+      await Promise.all([
+        this.buscarPeriodoContratacao(),
+        this.buscarInfraestrutura(),
+        this.buscarSetores(),
+        this.buscarAgentesPorAssistentes()
+      ]);
+
+    } catch (error: any) {
               loading.dismiss();
               this._isLoading.set(false);
               let errorMessage = 'Erro ao carregar proposta.';
-              if (err.status === 404) {
+      if (error.status === 404) {
                 errorMessage = 'Proposta não encontrada.';
-              } else if (err.error?.message) {
-                errorMessage = err.error.message;
+      } else if (error.error?.message) {
+        errorMessage = error.error.message;
               }
               this.showToast(errorMessage, 'danger');
-              //this.router.navigate(['/wizard']);
-            }
-          });
-        } else {
-          loading.dismiss();
-          this._isLoading.set(false);
-          let errorMessage = 'Erro ao carregar proposta.';
-          if (error.error?.message) {
-            errorMessage = error.error.message;
-          }
-          this.showToast(errorMessage, 'danger');
-          //this.router.navigate(['/wizard']);
-        }
+    }
+  }
+
+  async buscarPeriodoContratacao() {
+    const orc = this.orcamento();
+    if (!orc?.periodoId) return;
+
+    try {
+      const periodos = await firstValueFrom(
+        this.planoService.getPeriodosContratacao('id,asc').pipe(
+          catchError(() => of([]))
+        )
+      );
+      const periodo = periodos.find((p: PeriodoContratacao) => p.id === orc.periodoId);
+      if (periodo) {
+        this._periodoData.set(periodo);
       }
-    });
+    } catch (error) {
+      console.error('Erro ao buscar período:', error);
+    }
+  }
+
+  async buscarInfraestrutura() {
+    const orc = this.orcamento();
+    if (!orc?.infraestrutura?.id) return;
+
+    try {
+      const infraestruturas = await firstValueFrom(
+        this.planoService.getInfraestruturas('id,asc').pipe(
+          catchError(() => of([]))
+        )
+      );
+      const infra = infraestruturas.find((i: Infraestrutura) => i.id === orc.infraestrutura!.id);
+      if (infra) {
+        this._infraestruturaData.set(infra);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar infraestrutura:', error);
+    }
+  }
+
+  async buscarSetores() {
+    const assistentes = this.itensPorTipo().ASSISTENTE;
+    if (assistentes.length === 0) return;
+
+    try {
+      // Buscar assistentes para obter setores
+      const todosAssistentes = await firstValueFrom(
+        this.planoService.getAssistentes('id,asc', true).pipe(
+          catchError(() => of([]))
+        )
+      );
+
+      const assistentesIds = new Set(assistentes.map(a => a.referenciaId));
+      const setoresIds = new Set<number>();
+
+      // Extrair setores dos assistentes
+      todosAssistentes.forEach((assistente: any) => {
+        if (assistentesIds.has(assistente.id)) {
+          const setores = assistente.setors || assistente.setores || [];
+          setores.forEach((setor: any) => {
+            const setorId = typeof setor === 'object' ? setor.id : setor;
+            if (setorId) setoresIds.add(setorId);
+          });
+        }
+      });
+
+      // Buscar setores completos
+      if (setoresIds.size > 0) {
+        const setores = await firstValueFrom(
+          this.setorService.getAllSetors('id,asc', 0, 100, true).pipe(
+            catchError(() => of([]))
+          )
+        );
+        const setoresSelecionados = setores.filter((s: any) => setoresIds.has(s.id));
+        this._setoresData.set(setoresSelecionados);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar setores:', error);
+    }
+  }
+
+  async buscarAgentesPorAssistentes() {
+    const assistentes = this.itensPorTipo().ASSISTENTE;
+    if (assistentes.length === 0) return;
+
+    try {
+      // Buscar todos os relacionamentos agente-assistente
+      const agenteAssistentes = await firstValueFrom(
+        this.planoService.getAgenteAssistentes(true).pipe(
+          catchError(() => of([]))
+        )
+      );
+
+      const agentesMap = new Map<number, Agente[]>();
+
+      assistentes.forEach(item => {
+        const assistenteId = item.referenciaId;
+        const relacionamentos = agenteAssistentes.filter((aa: AgenteAssistente) => 
+          aa.assistente?.id === assistenteId
+        );
+        
+        const agentes = relacionamentos
+          .map((aa: AgenteAssistente) => aa.agente)
+          .filter((agente: Agente) => agente && agente.id);
+        
+        if (agentes.length > 0) {
+          agentesMap.set(assistenteId, agentes);
+        }
+      });
+
+      this._agentesPorAssistente.set(agentesMap);
+    } catch (error) {
+      console.error('Erro ao buscar agentes:', error);
+    }
   }
 
   async copiarLink() {
@@ -204,45 +310,25 @@ export class ResultadoOrcamentoPage implements OnInit {
     }
   }
 
-  falarComConsultor() {
-    const orcamento = this.orcamento();
-    const hash = this.codigoHash();
-    const nomeCliente = orcamento?.nomeCliente || orcamento?.nomeProspect || 'Cliente';
-    
-    const mensagem = encodeURIComponent(
-      `Olá, gostaria de falar sobre o orçamento do ${nomeCliente} (Ref: ${hash})`
-    );
-    // TODO: Substituir pelo número real do WhatsApp
-    window.open(`https://wa.me/5511999999999?text=${mensagem}`, '_blank');
-  }
-
   aprovarEAtivar() {
-    // TODO: Implementar lógica de aprovação
-    this.showToast('Funcionalidade de aprovação em desenvolvimento.', 'warning');
-  }
-
-  editarProposta() {
-    // Redireciona para o formulário de orçamento com o hash para carregar e editar
+    // TODO: Redirecionar para checkout/pagamento
     const hash = this.codigoHash();
     if (hash) {
-      this.router.navigate(['/formulario-orcamento'], { 
-        queryParams: { hash } 
-      });
+      // Exemplo: this.router.navigate(['/checkout'], { queryParams: { hash } });
+      this.showToast('Redirecionando para checkout...', 'success');
     } else {
       this.showToast('Hash da proposta não encontrado.', 'warning');
     }
   }
 
-  getIconeTipoItem(tipoItem: string): string {
-    switch (tipoItem) {
-      case 'INFRAESTRUTURA':
-        return 'server-outline';
-      case 'ASSISTENTE':
-        return 'people-outline';
-      case 'CANAL':
-        return 'chatbubbles-outline';
-      default:
-        return 'cube-outline';
+  editarProposta() {
+    const hash = this.codigoHash();
+    if (hash) {
+      this.router.navigate(['/formulario-orcamento'], { 
+        queryParams: { hash, action: 'edit' } 
+      });
+    } else {
+      this.showToast('Hash da proposta não encontrado.', 'warning');
     }
   }
 
@@ -253,220 +339,55 @@ export class ResultadoOrcamentoPage implements OnInit {
     }).format(valor);
   }
 
-  // Método auxiliar para recalcular valores de um item baseado na quantidade
-  private recalcularValoresItem(item: ItemOrcamentoDTO): ItemOrcamentoDTO {
-    const precoUnitarioFechado = item.precoUnitarioFechado || 0;
-    const precoUnitarioTabela = item.precoUnitarioTabela || 0;
-    
-    // Recalcula total mensal baseado no preço unitário e quantidade
-    const totalMensalFechado = precoUnitarioFechado * item.quantidade;
-    
-    // Para setup, geralmente é um valor fixo por item, não multiplicado pela quantidade
-    // Mas se houver setup por unidade, pode ser necessário ajustar
-    // Por enquanto, mantemos o setup proporcional à quantidade se já existir
-    const setupUnitario = item.totalSetupFechado && item.quantidade > 0 
-      ? item.totalSetupFechado / item.quantidade 
-      : (item.totalSetupFechado || 0);
-    const totalSetupFechado = setupUnitario * item.quantidade;
+  formatarPercentual(valor: number): string {
+    if (valor % 1 === 0) {
+      return valor.toFixed(0);
+    }
+    return valor.toFixed(2);
+  }
 
+  getDadosCliente() {
+    const orc = this.orcamento();
     return {
-      ...item,
-      totalMensalFechado,
-      totalSetupFechado
+      nome: orc?.nomeProspect || 'N/A',
+      email: orc?.emailProspect || 'N/A',
+      telefone: orc?.telefoneProspect || 'N/A'
     };
   }
 
-  // Métodos de edição de itens
-  removerItem(item: ItemOrcamentoDTO) {
-    const itensAtuais = this.itens();
-    const novosItens = itensAtuais.filter(i => 
-      !(i.id === item.id && i.referenciaId === item.referenciaId && i.tipoItem === item.tipoItem)
-    );
-    this._itensEditados.set([...novosItens]);
-    this.showToast('Item removido. Clique em "Salvar Alterações" para confirmar.', 'warning');
+  getNomePeriodo(): string {
+    return this.periodoData()?.nome || 'N/A';
   }
 
-  diminuirQuantidade(item: ItemOrcamentoDTO) {
-    if (item.quantidade <= 1) {
-      this.removerItem(item);
-      return;
-    }
-
-    const itensAtuais = this.itens();
-    const novosItens = itensAtuais.map(i => {
-      if (i.id === item.id && i.referenciaId === item.referenciaId && i.tipoItem === item.tipoItem) {
-        const itemAtualizado = { ...i, quantidade: i.quantidade - 1 };
-        return this.recalcularValoresItem(itemAtualizado);
-      }
-      return i;
-    });
-    this._itensEditados.set([...novosItens]);
-  }
-
-  aumentarQuantidade(item: ItemOrcamentoDTO) {
-    const itensAtuais = this.itens();
-    const novosItens = itensAtuais.map(i => {
-      if (i.id === item.id && i.referenciaId === item.referenciaId && i.tipoItem === item.tipoItem) {
-        const itemAtualizado = { ...i, quantidade: i.quantidade + 1 };
-        return this.recalcularValoresItem(itemAtualizado);
-      }
-      return i;
-    });
-    this._itensEditados.set([...novosItens]);
-  }
-
-  async abrirModalAdicionarAssistente() {
-    // Extrai setores dos assistentes já no orçamento para filtrar assistentes disponíveis
-    // TODO: Melhorar para buscar setores diretamente do orçamento quando disponível na API
+  getDescricaoPeriodo(): string {
+    const periodo = this.periodoData();
+    if (!periodo) return '';
     
-    // Por enquanto, busca todos os assistentes disponíveis
-    const modal = await this.modalController.create({
-      component: ModalAdicionarAssistenteComponent,
-      componentProps: {
-        assistentesAtuais: this.itensPorTipo().ASSISTENTE.map(i => i.referenciaId),
-        setorIds: [] // TODO: Extrair setores dos assistentes existentes
+    const meses = periodo.meses;
+    const desconto = periodo.valorDesconto;
+    const tipoDesconto = periodo.tipoDesconto;
+    
+    let descricao = `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+    
+    if (desconto > 0) {
+      if (tipoDesconto === 'PERCENTUAL') {
+        descricao += ` - ${this.formatarPercentual(desconto)}% de desconto`;
+      } else {
+        descricao += ` - ${this.formatarMoeda(desconto)} de desconto`;
       }
-    });
-
-    await modal.present();
-    const { data } = await modal.onWillDismiss();
-
-    if (data && data.assistente) {
-      this.adicionarAssistente(data.assistente, data.quantidade || 1);
     }
+    
+    return descricao;
   }
 
-  async adicionarAssistente(assistente: Assistente, quantidade: number = 1) {
-    // Verifica se o assistente já existe
-    const itensAtuais = this.itens();
-    const assistenteExistente = itensAtuais.find(
-      i => i.tipoItem === 'ASSISTENTE' && i.referenciaId === assistente.id
-    );
-
-    let novosItens: ItemOrcamentoDTO[];
-
-    if (assistenteExistente) {
-      // Se já existe, aumenta a quantidade e recalcula valores
-      novosItens = itensAtuais.map(i => {
-        if (i.tipoItem === 'ASSISTENTE' && i.referenciaId === assistente.id) {
-          const itemAtualizado = { ...i, quantidade: i.quantidade + quantidade };
-          return this.recalcularValoresItem(itemAtualizado);
-        }
-        return i;
-      });
-    } else {
-      // Se não existe, adiciona novo item
-      // TODO: Buscar preços reais da API
-      const novoItem: ItemOrcamentoDTO = {
-        tipoItem: 'ASSISTENTE',
-        referenciaId: assistente.id,
-        descricao: assistente.nome,
-        quantidade: quantidade,
-        precoUnitarioTabela: 0, // TODO: Buscar da API
-        precoUnitarioFechado: 0, // TODO: Buscar da API
-        totalMensalFechado: 0, // TODO: Calcular
-        totalSetupFechado: 0
-      };
-      novosItens = [...itensAtuais, novoItem];
-    }
-
-    this._itensEditados.set([...novosItens]);
-    this.showToast('Assistente adicionado. Clique em "Salvar Alterações" para confirmar.', 'success');
+  getNomeInfraestrutura(): string {
+    return this.infraestruturaData()?.nome || 'N/A';
   }
 
-  async salvarAlteracoes() {
-    if (!this.temMudancas()) {
-      this.showToast('Nenhuma alteração para salvar.', 'warning');
-      return;
-    }
-
-    const orcamentoId = this.orcamento()?.id;
-    if (!orcamentoId) {
-      this.showToast('Erro: ID do orçamento não encontrado.', 'danger');
-      return;
-    }
-
-    const loading = await this.loadingController.create({
-      message: 'Salvando alterações...',
-      spinner: 'crescent'
-    });
-    await loading.present();
-
-    try {
-      // Usa os dados do orçamento que já estão carregados na página
-      const orcamentoAtual = this.orcamento();
-      if (!orcamentoAtual) {
-        throw new Error('Orçamento não encontrado');
-      }
-
-      // Recalcula valores totais do orçamento baseado nos itens editados
-      const itensAtualizados = this.itens();
-      const valorTotalFechado = itensAtualizados.reduce(
-        (sum, item) => sum + (item.totalMensalFechado || 0), 
-        0
-      );
-      const valorTotalTabela = itensAtualizados.reduce(
-        (sum, item) => sum + (item.precoUnitarioTabela * item.quantidade || 0), 
-        0
-      );
-
-      // Atualiza os itens do orçamento e recalcula valores totais
-      const orcamentoAtualizado: OrcamentoDTO = {
-        ...orcamentoAtual,
-        itens: itensAtualizados,
-        valorTotalFechado,
-        valorTotalTabela
-      };
-
-      // Atualiza na API usando PUT no endpoint customizado com itens
-      console.log('🔄 Atualizando orçamento:', {
-        id: orcamentoId,
-        endpoint: `/api/custom/orcamentos/com-itens/${orcamentoId}`,
-        payload: orcamentoAtualizado
-      });
-
-      const orcamentoAtualizadoResponse = await firstValueFrom(
-        this.orcamentoService.update(orcamentoId, orcamentoAtualizado).pipe(
-          catchError((error) => {
-            console.error('❌ Erro ao atualizar orçamento:', error);
-            throw error;
-          })
-        )
-      );
-
-      console.log('✅ Orçamento atualizado com sucesso:', orcamentoAtualizadoResponse);
-
-      // Usa os itens editados (que já têm os valores recalculados corretos)
-      // em vez dos itens da resposta da API, para manter os valores calculados
-      const itensSalvos = itensAtualizados;
-      
-      // Atualiza os dados localmente com os itens que foram salvos (valores corretos)
-      const currentData = this._orcamentoData();
-      if (currentData) {
-        this._orcamentoData.set({
-          orcamento: {
-            ...orcamentoAtualizadoResponse,
-            valorTotalFechado,
-            valorTotalTabela
-          },
-          itens: itensSalvos
-        });
-      }
-
-      // Atualiza os itens iniciais com os valores salvos para que temMudancas() retorne false
-      this._itensIniciais.set(JSON.parse(JSON.stringify(itensSalvos)));
-      
-      // Limpa os itens editados - agora itens() usará _orcamentoData que já tem os valores corretos
-      this._itensEditados.set([]);
-
-      loading.dismiss();
-      this.showToast('Alterações salvas com sucesso!', 'success');
-
-    } catch (error: any) {
-      loading.dismiss();
-      console.error('Erro ao salvar alterações:', error);
-      this.showToast('Erro ao salvar alterações. Tente novamente.', 'danger');
-    }
+  getSetoresFormatados(): string {
+    const setores = this.setoresData();
+    if (setores.length === 0) return 'N/A';
+    return setores.map((s: any) => s.nome || s).join(', ');
   }
 
   private async showToast(message: string, color: 'success' | 'danger' | 'warning') {
