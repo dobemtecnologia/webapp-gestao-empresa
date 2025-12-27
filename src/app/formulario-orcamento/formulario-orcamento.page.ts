@@ -537,7 +537,7 @@ export class FormularioOrcamentoPage implements OnInit {
 
       const orcamentoDTO = this.converterParaOrcamentoDTO(leadData, periodoData, vendedorId);
       
-      if (this.isEditingMode && this.orcamentoId) {
+      if (this.orcamentoId) {
         // Atualiza orçamento existente
         orcamentoDTO.id = this.orcamentoId;
         const response = await firstValueFrom(
@@ -802,7 +802,7 @@ export class FormularioOrcamentoPage implements OnInit {
 
       const orcamentoDTO = this.converterParaOrcamentoDTO(leadData, periodoData, vendedorId);
 
-      if (this.isEditingMode && this.orcamentoId) {
+      if (this.orcamentoId) {
         orcamentoDTO.id = this.orcamentoId;
         this.orcamentoService.update(this.orcamentoId, orcamentoDTO)
           .pipe(finalize(() => {
