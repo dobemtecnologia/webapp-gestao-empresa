@@ -142,3 +142,4 @@ if (token) {
 - O token JWT geralmente expira após algumas horas
 - Verifique a data de expiração no token (pode decodificar em jwt.io)
 
+

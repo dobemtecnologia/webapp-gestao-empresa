@@ -40,6 +40,8 @@ export class AppComponent implements OnInit {
           url.startsWith('/login') ||
           url === '/wizard' ||
           url.startsWith('/wizard') ||
+          url === '/formulario-orcamento' ||
+          url.startsWith('/formulario-orcamento') ||
           url === '/resultado-orcamento' ||
           url.startsWith('/resultado-orcamento');
 

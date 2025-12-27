@@ -79,3 +79,4 @@ echo "  2. Verifique os logs da API"
 echo "  3. Confirme que a porta 8080 não está sendo usada por outro processo"
 echo ""
 
+

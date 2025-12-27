@@ -144,3 +144,10 @@ ion-menu.md ion-item[button]:last-child ion-icon {
 ion-menu.ios ion-item[button]:last-child ion-icon {
   color: var(--ion-color-danger, #eb445a);
 }
+
+// Ocultar menu quando desabilitado
+ion-menu[disabled],
+ion-menu.hidden {
+  display: none !important;
+  visibility: hidden !important;
+}

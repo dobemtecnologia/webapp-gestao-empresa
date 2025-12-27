@@ -14,7 +14,7 @@
             <ion-card-title>{{ infra.nome }}</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            <p>{{ infra.tipo }}</p>
+            <p>{{ infra.descricao }}</p>
             @if (isSelected(infra.id)) {
               <ion-text color="success">✓ Selecionado</ion-text>
             }
@@ -24,6 +24,7 @@
     </div>
   }
 </div>
+
 
 
 

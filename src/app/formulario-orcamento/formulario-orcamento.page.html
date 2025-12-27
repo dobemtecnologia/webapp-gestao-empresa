@@ -1,19 +1,9 @@
 <ion-header [translucent]="true">
   <ion-toolbar color="primary">
-    <ion-title>Formulário de Orçamento</ion-title>
-      <ion-buttons slot="end">
-        <ion-button routerLink="/wizard">
-          <ion-icon name="chatbubbles-outline"></ion-icon>
-        </ion-button>
-      </ion-buttons>
-  </ion-toolbar>
-</ion-header>
 
-<ion-content [fullscreen]="true">
-  <form [formGroup]="formulario" (ngSubmit)="finalizarOrcamento()">
-    
     <!-- Stepper Indicator -->
     <div class="stepper-container">
+
       <div class="stepper-steps">
         <div class="step" [class.active]="currentStep === 1" [class.completed]="currentStep > 1">
           <div class="step-number">1</div>
@@ -27,7 +17,7 @@
         <div class="step-line" [class.completed]="currentStep > 2"></div>
         <div class="step" [class.active]="currentStep === 3" [class.completed]="currentStep > 3">
           <div class="step-number">3</div>
-          <div class="step-label">Cálculo Plano</div>
+          <div class="step-label">Cálculo</div>
         </div>
         <div class="step-line" [class.completed]="currentStep > 3"></div>
         <div class="step" [class.active]="currentStep === 4" [class.completed]="currentStep === 4">
@@ -35,50 +25,48 @@
           <div class="step-label">Revisão</div>
         </div>
       </div>
+
     </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <form [formGroup]="formulario" (ngSubmit)="finalizarOrcamento()">
+
 
     <!-- Step 1: Dados do Cliente -->
     @if (currentStep === 1) {
-      <div class="step-content">
-        <app-dados-cliente 
-          [formGroup]="formulario"
-          (cnpjConsultado)="onSetoresChange($event)">
-        </app-dados-cliente>
-      </div>
+    <div class="step-content">
+      <app-dados-cliente [formGroup]="formulario" (cnpjConsultado)="onSetoresChange($event)">
+      </app-dados-cliente>
+    </div>
     }
 
     <!-- Step 2: Assistentes e Canais -->
     @if (currentStep === 2) {
-      <div class="step-content">
-        <app-assistentes-canais
-          [formGroup]="formulario"
-          (setoresChange)="onSetoresChange($event)"
-          (assistentesChange)="onAssistentesChange($event)"
-          (canaisChange)="onCanaisChange($event.canais, $event.assistantChannels)">
-        </app-assistentes-canais>
-      </div>
+    <div class="step-content">
+      <app-assistentes-canais [formGroup]="formulario" (setoresChange)="onSetoresChange($event)"
+        (assistentesChange)="onAssistentesChange($event)"
+        (canaisChange)="onCanaisChange($event.canais, $event.assistantChannels)">
+      </app-assistentes-canais>
+    </div>
     }
 
     <!-- Step 3: Cálculo do Plano -->
     @if (currentStep === 3) {
-      <div class="step-content">
-        <app-calculo-plano
-          [formGroup]="formulario"
-          [resultadoSimulacao]="resultadoSimulacao"
-          (infrastructureChange)="onInfrastructureChange($event)"
-          (periodoChange)="onPeriodoChange($event)">
-        </app-calculo-plano>
-      </div>
+    <div class="step-content">
+      <app-calculo-plano [formGroup]="formulario" [resultadoSimulacao]="resultadoSimulacao"
+        (infrastructureChange)="onInfrastructureChange($event)" (periodoChange)="onPeriodoChange($event)">
+      </app-calculo-plano>
+    </div>
     }
 
     <!-- Step 4: Revisão -->
     @if (currentStep === 4) {
-      <div class="step-content">
-        <app-resumo-orcamento
-          [formulario]="formulario"
-          [resultadoSimulacao]="resultadoSimulacao">
-        </app-resumo-orcamento>
-      </div>
+    <div class="step-content">
+      <app-resumo-orcamento [formulario]="formulario" [resultadoSimulacao]="resultadoSimulacao">
+      </app-resumo-orcamento>
+    </div>
     }
 
   </form>
@@ -91,94 +79,68 @@
     <ion-grid fixed *ngIf="!orcamentoConfirmado">
       <ion-row>
         <ion-col *ngIf="currentStep > 1">
-            <!-- Botão Anterior -->
-      @if (currentStep > 1) {
-        <ion-button 
-          expand="block" 
-          fill="outline" 
-          (click)="previousStep()"
-          >
-          <ion-icon name="arrow-back" slot="start"></ion-icon>
-          Anterior
-        </ion-button>
-      } @else {
-        <div class="nav-btn-spacer"></div>
-      }
+          <!-- Botão Anterior -->
+          @if (currentStep > 1) {
+          <ion-button expand="block" fill="outline" (click)="previousStep()">
+            <ion-icon name="arrow-back" slot="start"></ion-icon>
+            Anterior
+          </ion-button>
+          } @else {
+          <div class="nav-btn-spacer"></div>
+          }
         </ion-col>
-        <ion-col >
+        <ion-col>
           <!-- Botões principais por passo -->
-      @if (currentStep === 1) {
-        <ion-button 
-          expand="block" 
-          [disabled]="!canProceedToNextStep() || isLoading"
-          (click)="nextStep()"
-          >
-          Próximo
-          <ion-icon name="arrow-forward" slot="end"></ion-icon>
-        </ion-button>
-      } @else if (currentStep === 2) {
-        <ion-button 
-          expand="block" 
-          [disabled]="!canProceedToNextStep() || isLoading"
-          (click)="nextStep()"
-          >
-          Próximo
-          <ion-icon name="arrow-forward" slot="end"></ion-icon>
-        </ion-button>
-      } @else if (currentStep === 3) {
-        <ion-button 
-          [disabled]="!canProceedToNextStep() || isLoading"
-          (click)="nextStep()"
-          expand="block" >
-          Próximo
-          <ion-icon name="arrow-forward" slot="end"></ion-icon>
-        </ion-button>
-      } @else if (currentStep === 4 && !orcamentoConfirmado) {
-        <ion-button 
-          color="success"
-          [disabled]="!canProceedToNextStep() || isLoading"
-          (click)="confirmarOrcamento()"
-          expand="block" >
-          @if (isLoading) {
+          @if (currentStep === 1) {
+          <ion-button expand="block" [disabled]="!canProceedToNextStep() || isLoading" (click)="nextStep()">
+            Próximo
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          </ion-button>
+          } @else if (currentStep === 2) {
+          <ion-button expand="block" [disabled]="!canProceedToNextStep() || isLoading" (click)="nextStep()">
+            Próximo
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          </ion-button>
+          } @else if (currentStep === 3) {
+          <ion-button [disabled]="!canProceedToNextStep() || isLoading" (click)="nextStep()" expand="block">
+            Próximo
+            <ion-icon name="arrow-forward" slot="end"></ion-icon>
+          </ion-button>
+          } @else if (currentStep === 4 && !orcamentoConfirmado) {
+          <ion-button color="success" [disabled]="!canProceedToNextStep() || isLoading" (click)="confirmarOrcamento()"
+            expand="block">
+            @if (isLoading) {
             <ion-spinner name="crescent" color="light"></ion-spinner>
             <span class="ml-2">Confirmando...</span>
-          } @else {
+            } @else {
             <ion-icon name="checkmark-circle" slot="start"></ion-icon>
             Confirmar Orçamento
+            }
+          </ion-button>
           }
-        </ion-button>
-      }
         </ion-col>
       </ion-row>
     </ion-grid>
 
-      
-    
+<!--
+    @if (currentStep === 4 && orcamentoConfirmado) {
 
-     
-      
-      @if (currentStep === 4 && orcamentoConfirmado) {
+    <ion-button color="success" (click)="verPropostaCompleta()" expand="block">
+      <ion-icon name="document-text" slot="start"></ion-icon>
+      Ver Orçamento Completo
+    </ion-button>
 
-        <ion-button 
-        expand="block" 
-        fill="outline" 
-        (click)="previousStep()"
-        >
-        <ion-icon name="arrow-back" slot="start"></ion-icon>
-        Anterior
-      </ion-button>
+    <ion-button expand="block" fill="outline" (click)="previousStep()">
+      <ion-icon name="arrow-back" slot="start"></ion-icon>
+      Anterior
+    </ion-button>
 
-        <ion-button 
-          color="success"
-          (click)="verPropostaCompleta()"
-          expand="block" >
-          <ion-icon name="document-text" slot="start"></ion-icon>
-          Ver Orçamento Completo
-        </ion-button>
-      } @else {
-        <div class="nav-btn-spacer"></div>
-      }
-   
+
+    } @else {
+    <div class="nav-btn-spacer"></div>
+    }
+
+    -->
+
   </ion-toolbar>
 </ion-footer>
-

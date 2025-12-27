@@ -1,8 +1,8 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { PlanoService } from '../../services/plano.service';
 import { PeriodoContratacao } from '../../models/periodo-contratacao.model';
-import { firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of, Subscription } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
 @Component({
@@ -11,13 +11,15 @@ import { catchError } from 'rxjs/operators';
   styleUrls: ['./periodo-selector.component.scss'],
   standalone: false,
 })
-export class PeriodoSelectorComponent implements OnInit, OnChanges {
+export class PeriodoSelectorComponent implements OnInit, OnChanges, OnDestroy {
   @Input() formGroup!: FormGroup;
   @Output() periodoChange = new EventEmitter<string>();
 
   periodos: PeriodoContratacao[] = [];
   carregando = false;
   baseMonthlyValue = 0;
+  private resultadoSimulacaoSubscription?: Subscription;
+  private selectedPeriodSubscription?: Subscription;
 
   periodCards: Array<{
     codigo: string;
@@ -27,6 +29,8 @@ export class PeriodoSelectorComponent implements OnInit, OnChanges {
     valorDesconto: number;
     precoComDesconto: number;
     precoMensalEquivalente: number;
+    percentualDesconto?: number;
+    tipoDesconto?: string;
   }> = [];
 
   constructor(
@@ -36,28 +40,64 @@ export class PeriodoSelectorComponent implements OnInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['formGroup'] && this.formGroup) {
-      // Observar mudanças no resultado da simulação
+      this.configurarObservadores();
+      
+      // Carregar valor inicial se já existir
       const resultado = this.formGroup.get('resultadoSimulacao')?.value;
       if (resultado && resultado.valorMensalTotal) {
         this.baseMonthlyValue = resultado.valorMensalTotal;
         this.calcularValoresPorPeriodo();
       }
-      
-      // Observar mudanças no selectedPeriod para atualizar a UI
-      const selectedPeriod = this.formGroup.get('selectedPeriod');
-      if (selectedPeriod) {
-        selectedPeriod.valueChanges.subscribe(() => {
-          this.cdr.detectChanges();
-        });
+    }
+  }
+
+  private configurarObservadores() {
+    // Limpar subscriptions anteriores
+    if (this.resultadoSimulacaoSubscription) {
+      this.resultadoSimulacaoSubscription.unsubscribe();
+    }
+    if (this.selectedPeriodSubscription) {
+      this.selectedPeriodSubscription.unsubscribe();
+    }
+
+    if (!this.formGroup) {
+      return;
+    }
+
+    // Observar mudanças no resultado da simulação
+    const resultadoSimulacaoControl = this.formGroup.get('resultadoSimulacao');
+    if (resultadoSimulacaoControl) {
+      this.resultadoSimulacaoSubscription = resultadoSimulacaoControl.valueChanges.subscribe((resultado: any) => {
+        if (resultado && resultado.valorMensalTotal) {
+          this.baseMonthlyValue = resultado.valorMensalTotal;
+          this.calcularValoresPorPeriodo();
+        }
+      });
+
+      // Carregar valor inicial se já existir
+      const valorInicial = resultadoSimulacaoControl.value;
+      if (valorInicial && valorInicial.valorMensalTotal) {
+        this.baseMonthlyValue = valorInicial.valorMensalTotal;
+        this.calcularValoresPorPeriodo();
       }
+    }
+    
+    // Observar mudanças no selectedPeriod para atualizar a UI
+    const selectedPeriod = this.formGroup.get('selectedPeriod');
+    if (selectedPeriod) {
+      this.selectedPeriodSubscription = selectedPeriod.valueChanges.subscribe(() => {
+        this.cdr.detectChanges();
+      });
     }
   }
 
   async ngOnInit() {
     await this.carregarPeriodos();
     
-    // Verificar se já existe um período selecionado no formulário
     if (this.formGroup) {
+      this.configurarObservadores();
+      
+      // Verificar se já existe um período selecionado no formulário
       const selectedPeriod = this.formGroup.get('selectedPeriod')?.value;
       if (selectedPeriod) {
         // Força a detecção de mudanças para atualizar a UI
@@ -65,6 +105,15 @@ export class PeriodoSelectorComponent implements OnInit, OnChanges {
           this.cdr.detectChanges();
         }, 0);
       }
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.resultadoSimulacaoSubscription) {
+      this.resultadoSimulacaoSubscription.unsubscribe();
+    }
+    if (this.selectedPeriodSubscription) {
+      this.selectedPeriodSubscription.unsubscribe();
     }
   }
 
@@ -88,6 +137,7 @@ export class PeriodoSelectorComponent implements OnInit, OnChanges {
   private calcularValoresPorPeriodo() {
     if (!this.baseMonthlyValue || this.baseMonthlyValue <= 0 || this.periodos.length === 0) {
       this.periodCards = [];
+      this.cdr.detectChanges();
       return;
     }
 
@@ -112,9 +162,13 @@ export class PeriodoSelectorComponent implements OnInit, OnChanges {
         precoBruto,
         valorDesconto,
         precoComDesconto,
-        precoMensalEquivalente
+        precoMensalEquivalente,
+        percentualDesconto: periodo.tipoDesconto === 'PERCENTUAL' ? periodo.valorDesconto : undefined,
+        tipoDesconto: periodo.tipoDesconto
       };
     });
+    
+    this.cdr.detectChanges();
   }
 
   selectPeriod(codigo: string) {

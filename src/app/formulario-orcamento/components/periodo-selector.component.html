@@ -13,8 +13,14 @@
       @for (periodo of periodCards; track periodo.codigo) {
         <ion-card 
           [class.selected]="isSelected(periodo.codigo)"
+          [class.has-discount]="periodo.percentualDesconto && periodo.percentualDesconto > 0"
           (click)="selectPeriod(periodo.codigo)">
           <ion-card-header>
+            @if (periodo.percentualDesconto && periodo.percentualDesconto > 0) {
+              <div class="desconto-badge">
+                <span class="desconto-percentual">{{ periodo.percentualDesconto }}% OFF</span>
+              </div>
+            }
             <ion-card-title>{{ periodo.nome }}</ion-card-title>
             <ion-card-subtitle>{{ periodo.meses }} mês(es)</ion-card-subtitle>
           </ion-card-header>
@@ -37,6 +43,7 @@
     </div>
   }
 </div>
+
 
 
 
