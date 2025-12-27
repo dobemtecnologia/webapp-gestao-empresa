@@ -890,6 +890,10 @@ export class FormularioOrcamentoPage implements OnInit {
       itens: itens
     };
 
+    if (periodoData) {
+      orcamento.periodoId = periodoData.id;
+    }
+
     if (this.authService.isAuthenticated()) {
       const empresaId = this.tokenStorage.getEmpresaId();
       if (empresaId) orcamento.empresa = { id: empresaId };

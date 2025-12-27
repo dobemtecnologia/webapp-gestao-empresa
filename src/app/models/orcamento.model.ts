@@ -30,6 +30,7 @@ export interface OrcamentoDTO {
   empresaDadosCnpj?: EmpresaDadosCnpj;
   vendedor: { id: number };
   infraestrutura: { id: number };
+  periodoId?: number;
   itens?: ItemOrcamentoDTO[];
 }
 
