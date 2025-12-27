@@ -1,39 +1,261 @@
-<ion-card>
-  <ion-card-header>
-    <ion-card-title>Resumo do Orçamento</ion-card-title>
-  </ion-card-header>
-
-  <ion-card-content>
-    @if (resultadoSimulacao) {
-      <div class="resumo-section">
-        <h3>Configuração do Plano</h3>
-        <p><strong>Setores:</strong> {{ formatarSetores() }}</p>
-        <p><strong>Infraestrutura:</strong> {{ formulario.get('infrastructure')?.value || 'N/A' }}</p>
-        <p><strong>Período:</strong> {{ formulario.get('selectedPeriod')?.value || 'N/A' }}</p>
-      </div>
-
-      <div class="resumo-section">
-        <h3>Valores</h3>
-        <p><strong>Valor Mensal Base:</strong> {{ formatarMoeda(resultadoSimulacao.valorMensalTotal) }}</p>
-        @if (resultadoSimulacao.valorSetupTotal > 0) {
-          <p><strong>Valor Setup:</strong> {{ formatarMoeda(resultadoSimulacao.valorSetupTotal) }}</p>
+@if (resultadoSimulacao) {
+  <div class="resumo-container">
+    <!-- Dados do Cliente -->
+    <ion-card class="resumo-card">
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="person-outline"></ion-icon>
+          Dados do Cliente
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="info-row">
+          <span class="info-label">Nome:</span>
+          <span class="info-value">{{ getNomeCliente() }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Email:</span>
+          <span class="info-value">{{ getEmailCliente() }}</span>
+        </div>
+        @if (getTelefoneCliente() !== 'N/A') {
+          <div class="info-row">
+            <span class="info-label">Telefone:</span>
+            <span class="info-value">{{ getTelefoneCliente() }}</span>
+          </div>
         }
-      </div>
-    } @else {
-      <ion-text color="warning">Simulação não disponível</ion-text>
+        @if (getEmpresaData()?.razaoSocial) {
+          <div class="info-row">
+            <span class="info-label">Empresa:</span>
+            <span class="info-value">{{ getEmpresaData().razaoSocial }}</span>
+          </div>
+          @if (getEmpresaData()?.cnpj) {
+            <div class="info-row">
+              <span class="info-label">CNPJ:</span>
+              <span class="info-value">{{ getEmpresaData().cnpj }}</span>
+            </div>
+          }
+        }
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Configuração do Plano -->
+    <ion-card class="resumo-card">
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="settings-outline"></ion-icon>
+          Configuração do Plano
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="info-row">
+          <span class="info-label">Setores:</span>
+          <span class="info-value">{{ formatarSetores() }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Infraestrutura:</span>
+          <span class="info-value">{{ getNomeInfraestrutura() }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Período:</span>
+          <span class="info-value">{{ getNomePeriodo() }}</span>
+        </div>
+        @if (getDescricaoPeriodo()) {
+          <div class="info-row">
+            <span class="info-label">Detalhes:</span>
+            <span class="info-value">{{ getDescricaoPeriodo() }}</span>
+          </div>
+        }
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Assistentes e Canais -->
+    @if (getAssistentes().length > 0) {
+      <ion-card class="resumo-card">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="people-outline"></ion-icon>
+            Assistentes Selecionados
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          @for (assistente of getAssistentes(); track assistente.id) {
+            <div class="item-detalhado">
+              <div class="item-header">
+                <span class="item-nome">{{ assistente.nome || 'Assistente' }}</span>
+                <span class="item-quantidade">x{{ assistente.quantity }}</span>
+              </div>
+              @if (assistente.sector) {
+                <div class="item-detalhe">Setor: {{ assistente.sector }}</div>
+              }
+            </div>
+          }
+        </ion-card-content>
+      </ion-card>
     }
-  </ion-card-content>
-</ion-card>
 
-<style>
-.resumo-section {
-  margin-bottom: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--ion-color-medium);
-}
+    @if (getCanais().length > 0) {
+      <ion-card class="resumo-card">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="chatbubbles-outline"></ion-icon>
+            Canais de Comunicação
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="canais-list">
+            @for (canal of getCanais(); track canal.id) {
+              <ion-chip>
+                <ion-icon name="checkmark-circle"></ion-icon>
+                <ion-label>{{ canal.nome }}</ion-label>
+              </ion-chip>
+            }
+          </div>
+        </ion-card-content>
+      </ion-card>
+    }
 
-.resumo-section:last-child {
-  border-bottom: none;
+    <!-- Itens do Orçamento -->
+    <ion-card class="resumo-card">
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="list-outline"></ion-icon>
+          Detalhamento dos Itens
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        @if (getItensPorTipo('INFRAESTRUTURA').length > 0) {
+          <div class="itens-grupo">
+            <h4 class="grupo-titulo">Infraestrutura</h4>
+            @for (item of getItensPorTipo('INFRAESTRUTURA'); track item.referenciaId) {
+              <div class="item-orcamento">
+                <div class="item-info">
+                  <span class="item-nome">{{ item.nomeComponente }}</span>
+                  <span class="item-valor">{{ formatarMoeda(item.subtotalMensal) }}/mês</span>
+                </div>
+                @if (item.subtotalSetup > 0) {
+                  <div class="item-setup">Setup: {{ formatarMoeda(item.subtotalSetup) }}</div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (getItensPorTipo('ASSISTENTE').length > 0) {
+          <div class="itens-grupo">
+            <h4 class="grupo-titulo">Assistentes</h4>
+            @for (item of getItensPorTipo('ASSISTENTE'); track item.referenciaId) {
+              <div class="item-orcamento">
+                <div class="item-info">
+                  <span class="item-nome">{{ item.nomeComponente }} (x{{ item.quantidade }})</span>
+                  <span class="item-valor">{{ formatarMoeda(item.subtotalMensal) }}/mês</span>
+                </div>
+                @if (item.subtotalSetup > 0) {
+                  <div class="item-setup">Setup: {{ formatarMoeda(item.subtotalSetup) }}</div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (getItensPorTipo('CANAL').length > 0) {
+          <div class="itens-grupo">
+            <h4 class="grupo-titulo">Canais</h4>
+            @for (item of getItensPorTipo('CANAL'); track item.referenciaId) {
+              <div class="item-orcamento">
+                <div class="item-info">
+                  <span class="item-nome">{{ item.nomeComponente }} (x{{ item.quantidade }})</span>
+                  <span class="item-valor">{{ formatarMoeda(item.subtotalMensal) }}/mês</span>
+                </div>
+                @if (item.subtotalSetup > 0) {
+                  <div class="item-setup">Setup: {{ formatarMoeda(item.subtotalSetup) }}</div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (getCustosVariaveis().length > 0) {
+          <div class="itens-grupo">
+            <h4 class="grupo-titulo">Custos Variáveis Estimados</h4>
+            @for (custo of getCustosVariaveis(); track custo.recurso) {
+              <div class="item-orcamento">
+                <div class="item-info">
+                  <span class="item-nome">{{ formatarNomeCustoVariavel(custo) }}</span>
+                  <span class="item-valor">{{ formatarMoeda(custo.totalEstimado) }}/mês</span>
+                </div>
+                <div class="item-setup">{{ formatarDetalheCustoVariavel(custo) }}</div>
+              </div>
+            }
+            <div class="item-orcamento">
+            <div class="item-info">
+              <span class="item-nome">Total Custos Variáveis:</span>
+              <span class="item-valor">{{ formatarMoeda(getTotalCustosVariaveis()) }}/mês</span>
+            </div>
+            </div>
+          </div>
+        }
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Valores -->
+    <ion-card class="resumo-card valores-card">
+      <ion-card-header class="valores-header">
+        <ion-card-title>
+          <ion-icon name="wallet-outline"></ion-icon>
+          Valores do Orçamento
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content class="valores-content">
+        <div class="valores-container">
+          <!-- Valor Mensal Base -->
+          <div class="valor-item">
+            <span class="valor-label">Valor Mensal Base:</span>
+            <span class="valor-amount valor-base">{{ formatarMoeda(resultadoSimulacao.valorMensalTotal) }}</span>
+          </div>
+
+          <!-- Seção de Desconto -->
+          @if (percentualDesconto && valorComDesconto) {
+            <div class="valor-desconto-section">
+              <div class="desconto-info">
+                <span class="desconto-label">Desconto ({{ formatarPercentual(percentualDesconto) }}%):</span>
+                <span class="desconto-valor">-{{ formatarMoeda(resultadoSimulacao.valorMensalTotal - valorComDesconto) }}</span>
+              </div>
+              <div class="valor-item valor-com-desconto">
+                <span class="valor-label">Valor Mensal com Desconto:</span>
+                <span class="valor-amount valor-destaque">{{ formatarMoeda(valorComDesconto) }}</span>
+              </div>
+            </div>
+          }
+
+          <!-- Valor Setup -->
+          @if (resultadoSimulacao.valorSetupTotal > 0) {
+            <div class="valor-item">
+              <span class="valor-label">Valor Setup (único):</span>
+              <span class="valor-amount">{{ formatarMoeda(resultadoSimulacao.valorSetupTotal) }}</span>
+            </div>
+          }
+
+          <!-- Total Inicial -->
+          <div class="valor-total-section">
+            <div class="valor-total">
+              <span class="total-label">Total Inicial (Setup + Primeiro Mês):</span>
+              <span class="total-amount">
+                {{ formatarMoeda((valorComDesconto || resultadoSimulacao.valorMensalTotal) + resultadoSimulacao.valorSetupTotal) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+} @else {
+  <ion-card>
+    <ion-card-content>
+      <ion-text color="warning">
+        <ion-icon name="warning-outline"></ion-icon>
+        Simulação não disponível
+      </ion-text>
+    </ion-card-content>
+  </ion-card>
 }
-</style>
 
